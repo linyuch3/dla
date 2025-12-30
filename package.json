@@ -1,0 +1,49 @@
+{
+  "name": "cloudpanel-cf",
+  "version": "1.0.0",
+  "description": "CloudPanel - 云服务器管理面板 (Cloudflare Pages 版本)",
+  "main": "functions/index.ts",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "build": "bash build.sh",
+    "deploy": "wrangler pages deploy",
+    "deploy:production": "wrangler pages deploy --env production",
+    "db:create": "wrangler d1 create cloudpanel",
+    "db:migrate": "wrangler d1 migrations apply cloudpanel",
+    "db:migrate:preview": "wrangler d1 migrations apply cloudpanel --env preview",
+    "db:migrate:prod": "wrangler d1 migrations apply cloudpanel --env production",
+    "db:shell": "wrangler d1 execute cloudpanel --command='SELECT 1'",
+    "kv:create": "wrangler kv:namespace create cloudpanel",
+    "kv:create:preview": "wrangler kv:namespace create cloudpanel --env preview",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint functions/**/*.ts",
+    "format": "prettier --write functions/**/*.ts",
+    "clean": "rm -rf dist .wrangler",
+    "setup": "npm run db:create && npm run kv:create && npm run db:migrate"
+  },
+  "keywords": [
+    "cloudflare",
+    "pages",
+    "functions",
+    "cloud",
+    "server",
+    "management",
+    "digitalocean",
+    "linode"
+  ],
+  "author": "CloudPanel Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231121.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3"
+  }
+} 

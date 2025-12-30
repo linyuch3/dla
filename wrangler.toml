@@ -1,0 +1,71 @@
+name = "cloudpanel"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Pages 构建输出目录
+pages_build_output_dir = "."
+
+# 环境变量
+[vars]
+ENCRYPTION_KEY = "3d4d5108f8bc39a35877e17ebe002962818a20bad3170e77211550554295a394"
+ADMIN_USER = "yuchen"
+ADMIN_PASSWORD = "lks123.."
+SESSION_DURATION = "86400000"
+CACHE_TTL = "3600"
+TELEGRAM_BOT_TOKEN = "8340389172:AAHWIAw1TLWJr2VhG1y38Kuw-lNuqPqUhho"
+TELEGRAM_ADMIN_ID = "5136100995"
+
+# D1 数据库配置
+[[d1_databases]]
+binding = "DB"
+database_name = "cloudpanel"
+database_id = "4cfef64a-0198-43d3-8405-99bd8d277c1f"
+
+# KV 存储配置
+[[kv_namespaces]]
+binding = "KV"
+id = "51a1f80bd4434841b09bca3f68b13aa2"
+
+# 预览环境配置
+[env.preview.vars]
+ENCRYPTION_KEY = "dev-encryption-key-32-chars-long"
+ADMIN_USER = "admin"
+ADMIN_PASSWORD = "admin123"
+SESSION_DURATION = "86400000"
+CACHE_TTL = "3600"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "cloudpanel-preview"
+database_id = "4cfef64a-0198-43d3-8405-99bd8d277c1f"
+
+[[env.preview.kv_namespaces]]
+binding = "KV"
+id = "51a1f80bd4434841b09bca3f68b13aa2"
+
+# 生产环境配置
+[env.production.vars]
+ENCRYPTION_KEY = "3d4d5108f8bc39a35877e17ebe002962818a20bad3170e77211550554295a394"
+ADMIN_USER = "yuchen"
+ADMIN_PASSWORD = "lks123.."
+SESSION_DURATION = "86400000"
+CACHE_TTL = "7200"
+TELEGRAM_BOT_TOKEN = "8340389172:AAHWIAw1TLWJr2VhG1y38Kuw-lNuqPqUhho"
+TELEGRAM_ADMIN_ID = "5136100995"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "cloudpanel-prod"
+database_id = "4cfef64a-0198-43d3-8405-99bd8d277c1f"
+
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "51a1f80bd4434841b09bca3f68b13aa2"
+
+# Cron Triggers配置 - 定时通知任务
+# 注意：Pages项目不支持triggers配置，已注释掉
+# [triggers]
+# crons = ["0 0 * * *"]  # 每天UTC 00:00执行 (北京时间08:00)
+
+# 注意：如果是Pages项目，可能需要在Cloudflare Dashboard中手动配置Cron Triggers
+# 或者考虑使用独立的Cloudflare Worker来处理定时任务

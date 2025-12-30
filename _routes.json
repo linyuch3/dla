@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "include": [
+    "/api/*"
+  ],
+  "exclude": [
+    "/assets/*",
+    "/*.css",
+    "/*.js",
+    "/*.png",
+    "/*.jpg",
+    "/*.jpeg",
+    "/*.gif",
+    "/*.ico",
+    "/*.svg"
+  ],
+  "rules": [
+    
+    {
+      "path": "/",
+      "file": "/index.html"
+    }
+  ]
+} 
