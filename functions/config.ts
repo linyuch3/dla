@@ -76,7 +76,7 @@ export function validateConfig() {
     }
     if (config.session.secret === 'default-session-secret') {
       console.warn('⚠️  警告: 使用默认 SESSION_SECRET');
-    
+    }
     if (config.admin.password === 'admin123') {
       console.warn('⚠️  警告: 使用默认管理员密码，建议修改');
     }
