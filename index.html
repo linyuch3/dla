@@ -56,6 +56,10 @@
             --error-500: #ef4444;
             --error-600: #dc2626;
             
+            --purple-50: #faf5ff;
+            --purple-500: #8b5cf6;
+            --purple-600: #7c3aed;
+            
             /* 深色模式颜色 */
             --bg-primary: #ffffff;
             --bg-secondary: #f8fafc;
@@ -397,6 +401,30 @@
             filter: brightness(1.1);
         }
         
+        .btn-purple {
+            background: linear-gradient(135deg, var(--purple-500), var(--purple-600));
+            color: white;
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.25);
+        }
+        
+        .btn-purple:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.35);
+            filter: brightness(1.1);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+            box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.25);
+        }
+        
+        .btn-info:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.35);
+            filter: brightness(1.1);
+        }
+        
         .btn-sm {
             padding: var(--space-2) var(--space-3);
             font-size: 0.75rem;
@@ -683,21 +711,46 @@
             border-bottom: none;
         }
 
-        /* 密钥表格列宽优化 */
+        /* 密钥表格列宽优化 - 6列 */
         .api-keys-table th:nth-child(1), .api-keys-table td:nth-child(1) { 
-            width: 25%; /* 名称列 */
+            width: 22%; /* 名称列 */
         }
         .api-keys-table th:nth-child(2), .api-keys-table td:nth-child(2) { 
-            width: 15%; /* 状态列 */
+            width: 10%; /* 分组列 */
         }
         .api-keys-table th:nth-child(3), .api-keys-table td:nth-child(3) { 
-            width: 20%; /* 添加时间列 */
+            width: 13%; /* 状态列 */
         }
         .api-keys-table th:nth-child(4), .api-keys-table td:nth-child(4) { 
-            width: 15%; /* 存活时间列 */
+            width: 18%; /* 添加时间列 */
         }
         .api-keys-table th:nth-child(5), .api-keys-table td:nth-child(5) { 
+            width: 12%; /* 存活时间列 */
+        }
+        .api-keys-table th:nth-child(6), .api-keys-table td:nth-child(6) { 
             width: 25%; /* 操作列 */
+        }
+
+        /* 分组标签样式 */
+        .key-group-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .key-group-tag.self-use {
+            background: var(--primary-100);
+            color: var(--primary-700);
+        }
+        .key-group-tag.rental {
+            background: var(--success-50);
+            color: var(--success-600);
+        }
+        .key-group-tag.custom {
+            background: var(--purple-50);
+            color: var(--purple-600);
         }
 
         .api-key-name {
@@ -1485,11 +1538,24 @@
             display: flex;
             gap: var(--space-1);
             flex-wrap: nowrap;
+            justify-content: flex-start;
         }
         
         .instances-table .btn-xs {
-            padding: 2px 6px;
-            font-size: 0.7rem;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            min-width: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .instances-table .instance-row:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .instances-table .instance-row.selected {
+            background: var(--primary-50);
         }
         
         /* 视图切换按钮 */
@@ -3900,17 +3966,12 @@
                 
                 <div class="form-group">
                     <label class="form-label">分组</label>
-                    <div style="position: relative;">
-                        <input type="text" id="api-key-group" class="form-input" 
-                               placeholder="输入或选择分组"
-                               list="key-groups-datalist"
-                               value="自用"
-                               style="padding-right: 30px;">
-                        <i class="fas fa-chevron-down" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; font-size: 12px;"></i>
-                    </div>
+                    <select id="api-key-group" class="form-select">
+                        <option value="自用" selected>自用</option>
+                        <option value="租机">租机</option>
+                    </select>
                     <div class="form-help">
-                        <i class="fas fa-lightbulb" style="color: var(--warning-500);"></i>
-                        输入新名称即可创建新分组，如：VIP池、测试组
+                        仅支持“自用”或“租机”分组
                     </div>
                 </div>
                 
@@ -4512,37 +4573,22 @@
         let totalKeys = 0;
         let currentProvider = 'digitalocean'; // 当前选中的服务商标签页，默认为DigitalOcean
 
-        // 加载分组列表（从已有的API密钥中收集）
+        // 加载分组列表（从已有的API密钥中收集，并更新下拉框）
         async function loadCachedKeyGroups() {
-            try {
-                const data = await apiCall('/api/apikeys');
-                const keys = data.data?.keys || [];
-                
-                // 收集所有唯一的分组名称
-                const groupSet = new Set();
-                keys.forEach(key => {
-                    if (key.key_group) {
-                        groupSet.add(key.key_group);
-                    }
-                });
-                
-                // 添加默认建议
-                groupSet.add('自用');
-                groupSet.add('租机');
-                
-                cachedKeyGroups = Array.from(groupSet);
-                
-                // 创建或更新全局datalist
-                let datalist = document.getElementById('key-groups-datalist');
-                if (!datalist) {
-                    datalist = document.createElement('datalist');
-                    datalist.id = 'key-groups-datalist';
-                    document.body.appendChild(datalist);
-                }
+            // 只允许“自用”和“租机”
+            cachedKeyGroups = ['自用', '租机'];
+            // 更新添加密钥表单的下拉列表
+            const groupSelect = document.getElementById('api-key-group');
+            if (groupSelect) {
+                const currentValue = groupSelect.value;
+                groupSelect.innerHTML = cachedKeyGroups.map(g => 
+                    `<option value="${g}" ${g === currentValue ? 'selected' : ''}>${g}</option>`
+                ).join('');
+            }
+            // 更新备用密钥分组的datalist
+            const datalist = document.getElementById('existing-groups-list');
+            if (datalist) {
                 datalist.innerHTML = cachedKeyGroups.map(g => `<option value="${g}">`).join('');
-            } catch (error) {
-                console.error('加载分组列表失败:', error);
-                cachedKeyGroups = ['自用', '租机'];
             }
         }
 
@@ -5426,6 +5472,7 @@
                             <thead>
                                 <tr>
                                     <th>名称</th>
+                                    <th>分组</th>
                                     <th>状态</th>
                                     <th>添加时间</th>
                                     <th>存活时间</th>
@@ -5439,6 +5486,11 @@
                                         <td>
                                             <div class="api-key-name">${key.name}</div>
                                             <div class="api-key-id">ID: ${key.id}</div>
+                                        </td>
+                                        <td>
+                                            <span class="key-group-tag ${key.key_group === '自用' ? 'self-use' : key.key_group === '租机' ? 'rental' : 'custom'}">
+                                                ${key.key_group || '未分组'}
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="health-indicator">
@@ -6207,18 +6259,19 @@
                     <table class="instances-table">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="table-select-all" onclick="toggleSelectAll(this)"></th>
+                                <th style="width: 40px;"><input type="checkbox" class="instance-checkbox" id="table-select-all" onchange="toggleTableSelectAll(this)"></th>
                                 <th>名称</th>
                                 <th>状态</th>
                                 <th>IP地址</th>
                                 <th>地区</th>
                                 <th>配置</th>
-                                <th>操作</th>
+                                <th>创建时间</th>
+                                <th style="width: 180px;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${instances.map(instance => `
-                                <tr data-instance-id="${instance.id}">
+                                <tr data-instance-id="${instance.id}" class="instance-row">
                                     <td><input type="checkbox" class="instance-checkbox instance-select" data-instance-id="${instance.id}" data-instance-name="${instance.name}"></td>
                                     <td>
                                         <div style="font-weight: 500;">${instance.name}</div>
@@ -6230,15 +6283,21 @@
                                         </span>
                                     </td>
                                     <td>
-                                        ${instance.ip_address ? `<span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ip_address}')" style="cursor:pointer;">${instance.ip_address}</span>` : '-'}
+                                        <div style="line-height: 1.4;">
+                                            ${instance.ip_address ? `<span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ip_address}')" style="cursor:pointer;">${instance.ip_address}</span>` : '-'}
+                                            ${instance.ipv6_address && instance.ipv6_address !== '分配中...' ? `<br><span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ipv6_address}')" style="cursor:pointer; font-size: 0.75rem; color: var(--text-secondary);">${instance.ipv6_address}</span>` : ''}
+                                        </div>
                                     </td>
                                     <td>${getRegionDisplayName(instance.region)}</td>
-                                    <td>${instance.vcpus}C/${formatMemory(instance.memory, instance.provider)}</td>
+                                    <td>${instance.vcpus}C/${formatMemory(instance.memory, instance.provider)}/${formatDisk(instance.disk, instance.provider)}</td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">${formatCreateTime(instance.created_at)}</td>
                                     <td>
                                         <div class="table-actions">
                                             <button onclick="performInstanceAction('${instance.id}', 'power_on')" class="btn btn-xs btn-success" title="启动"><i class="fas fa-play"></i></button>
                                             <button onclick="performInstanceAction('${instance.id}', 'power_off')" class="btn btn-xs btn-warning" title="关机"><i class="fas fa-stop"></i></button>
                                             <button onclick="performInstanceAction('${instance.id}', 'reboot')" class="btn btn-xs btn-secondary" title="重启"><i class="fas fa-redo"></i></button>
+                                            ${instance.provider === 'digitalocean' ? `<button onclick="showChangeIPModal('${instance.id}', ${!!instance.ipv6_address})" class="btn btn-xs btn-info" title="换IP"><i class="fas fa-exchange-alt"></i></button>` : ''}
+                                            ${instance.provider === 'digitalocean' && !instance.ipv6_address ? `<button onclick="showChangeIPModal('${instance.id}', false, 'IPv6')" class="btn btn-xs btn-purple" title="附加IPv6"><i class="fas fa-plus"></i></button>` : ''}
                                             <button onclick="deleteInstance('${instance.id}')" class="btn btn-xs btn-danger" title="删除"><i class="fas fa-trash"></i></button>
                                         </div>
                                     </td>
@@ -6270,6 +6329,8 @@
                                     <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'power_on')" class="btn btn-sm btn-success" title="启动"><i class="fas fa-play"></i></button>
                                     <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'power_off')" class="btn btn-sm btn-warning" title="关机"><i class="fas fa-stop"></i></button>
                                     <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'reboot')" class="btn btn-sm btn-secondary" title="重启"><i class="fas fa-redo"></i></button>
+                                    ${instance.provider === 'digitalocean' ? `<button onclick="event.stopPropagation(); showChangeIPModal('${instance.id}', ${!!instance.ipv6_address})" class="btn btn-sm btn-info" title="换IP"><i class="fas fa-exchange-alt"></i></button>` : ''}
+                                    ${instance.provider === 'digitalocean' && !instance.ipv6_address ? `<button onclick="event.stopPropagation(); showChangeIPModal('${instance.id}', false, 'IPv6')" class="btn btn-sm btn-purple" title="附加IPv6"><i class="fas fa-plus"></i></button>` : ''}
                                     <button onclick="event.stopPropagation(); deleteInstance('${instance.id}')" class="btn btn-sm btn-danger" title="删除"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
@@ -6303,13 +6364,28 @@
             }
         }
         
-        // 表格全选
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.instance-select');
-            checkboxes.forEach(cb => {
-                cb.checked = checkbox.checked;
-                updateSelectedInstances();
+        // 表格全选（用于表格视图中的表头全选checkbox）
+        function toggleTableSelectAll(checkbox) {
+            const instanceCheckboxes = document.querySelectorAll('.instance-select');
+            console.log(`🔄 表格全选切换: ${checkbox.checked ? '全选' : '取消全选'}, 实例数量: ${instanceCheckboxes.length}`);
+            
+            instanceCheckboxes.forEach(cb => {
+                if (cb.checked !== checkbox.checked) {
+                    cb.checked = checkbox.checked;
+                    // 更新行样式
+                    const row = cb.closest('tr');
+                    if (row) {
+                        if (checkbox.checked) {
+                            row.classList.add('selected');
+                            selectedInstances.add(cb.dataset.instanceId);
+                        } else {
+                            row.classList.remove('selected');
+                            selectedInstances.delete(cb.dataset.instanceId);
+                        }
+                    }
+                }
             });
+            updateBatchToolbar();
         }
 
         function getInstanceStatusClass(status) {
@@ -8216,17 +8292,37 @@
             }
         }
 
-        // 处理实例选择
+        // 处理实例选择（支持卡片视图和表格视图）
         function handleInstanceSelection(checkbox) {
             const instanceId = checkbox.dataset.instanceId;
             const instanceCard = checkbox.closest('.instance-card');
+            const instanceRow = checkbox.closest('.instance-row');
             
             if (checkbox.checked) {
                 selectedInstances.add(instanceId);
-                instanceCard.classList.add('selected');
+                if (instanceCard) instanceCard.classList.add('selected');
+                if (instanceRow) instanceRow.classList.add('selected');
             } else {
                 selectedInstances.delete(instanceId);
-                instanceCard.classList.remove('selected');
+                if (instanceCard) instanceCard.classList.remove('selected');
+                if (instanceRow) instanceRow.classList.remove('selected');
+            }
+            
+            // 同步表格视图中的表头全选checkbox状态
+            const tableSelectAll = document.getElementById('table-select-all');
+            if (tableSelectAll) {
+                const totalInstances = document.querySelectorAll('.instance-select').length;
+                const selectedCount = selectedInstances.size;
+                if (selectedCount === 0) {
+                    tableSelectAll.checked = false;
+                    tableSelectAll.indeterminate = false;
+                } else if (selectedCount === totalInstances) {
+                    tableSelectAll.checked = true;
+                    tableSelectAll.indeterminate = false;
+                } else {
+                    tableSelectAll.checked = false;
+                    tableSelectAll.indeterminate = true;
+                }
             }
             
             updateBatchToolbar();

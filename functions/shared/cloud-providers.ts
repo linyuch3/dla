@@ -720,13 +720,19 @@ export class LinodeProvider implements CloudProviderAPI {
     if (!timeString) return new Date().toISOString();
     
     try {
-      // Linode API通常返回UTC时间，但可能没有Z后缀
-      // 如果没有时区标识，添加Z表示UTC
-      if (timeString && !timeString.includes('Z') && !timeString.includes('+') && !timeString.includes('-')) {
-        timeString += 'Z';
+      // Linode API返回UTC时间，格式为 "2025-12-31T15:30:00"
+      // 需要检查是否已经有时区标识
+      let normalizedTime = timeString;
+      
+      // 检查字符串末尾是否有时区信息（Z 或 +/-HH:MM）
+      const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(timeString);
+      
+      if (!hasTimezone) {
+        // Linode返回的是UTC时间，添加Z后缀
+        normalizedTime = timeString + 'Z';
       }
       
-      const date = new Date(timeString);
+      const date = new Date(normalizedTime);
       
       // 验证日期是否有效
       if (isNaN(date.getTime())) {
