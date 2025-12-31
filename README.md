@@ -46,7 +46,7 @@
 
 ### 方式一：Zeabur 一键部署（推荐）
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/PREBUILT?image=ghcr.io/7d653179z/dla:latest)
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/deploy?repo=7d653179z/dla)
 
 1. 点击上方按钮
 2. 登录 Zeabur 账户

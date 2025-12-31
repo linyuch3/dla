@@ -2,7 +2,7 @@
 
 ## 一键部署
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/PREBUILT?image=ghcr.io/7d653179z/dla:latest)
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/deploy?repo=7d653179z/dla)
 
 或者使用 Docker 镜像手动部署：
 
