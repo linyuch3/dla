@@ -1,8 +1,14 @@
-# Zeabur 一键部署指南
+# Zeabur 部署指南
 
-## 一键部署
+## 部署步骤
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/deploy?repo=7d653179z/dla)
+1. 登录 [Zeabur Dashboard](https://dash.zeabur.com)
+2. 创建新项目
+3. 添加服务 → 选择 **Prebuilt Image**
+4. 输入镜像地址：`ghcr.io/7d653179z/dla:latest`
+5. 配置端口：`3000`
+6. 添加持久化卷：`/app/data`
+7. 点击 **Generate Domain** 生成域名
 
 或者使用 Docker 镜像手动部署：
 

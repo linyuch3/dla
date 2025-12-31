@@ -2,7 +2,7 @@
 
 > 现代化多云服务器管理面板 - 支持 Docker / Zeabur / Cloudflare Pages 部署
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/cloudpanel)
+
 [![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue?logo=docker)](https://github.com/7d653179z/dla/pkgs/container/dla)
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages-orange?logo=cloudflare)](https://pages.cloudflare.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -44,13 +44,13 @@
 
 ## 🚀 快速部署
 
-### 方式一：Zeabur 一键部署（推荐）
+### 方式一：Zeabur 部署（推荐）
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/deploy?repo=7d653179z/dla)
-
-1. 点击上方按钮
-2. 登录 Zeabur 账户
-3. 选择区域后部署（无需配置环境变量）
+1. 登录 [Zeabur Dashboard](https://dash.zeabur.com)
+2. 创建新项目 → **Add Service** → **Prebuilt Image**
+3. 输入镜像：`ghcr.io/7d653179z/dla:latest`
+4. 配置端口 `3000`，添加持久化卷 `/app/data`
+5. 生成域名访问
 
 ### 方式二：Docker 部署
 
