@@ -23,14 +23,14 @@
         "ENCRYPTION_KEY": {
           "default": "",
           "expose": false,
-          "required": true,
-          "description": "数据加密密钥 (32字符)"
+          "required": false,
+          "description": "数据加密密钥 (64字符hex)，可选，已内置默认值"
         },
         "JWT_SECRET": {
           "default": "",
           "expose": false,
-          "required": true,
-          "description": "JWT 签名密钥"
+          "required": false,
+          "description": "JWT 签名密钥，可选，已内置默认值"
         },
         "ADMIN_USERNAME": {
           "default": "admin",

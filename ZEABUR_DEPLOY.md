@@ -40,8 +40,10 @@ ghcr.io/7d653179z/dla:latest
 
 | 变量名 | 必填 | 说明 |
 |--------|------|------|
-| `ENCRYPTION_KEY` | ✅ | API密钥加密密钥，必须32字符 |
-| `JWT_SECRET` | ✅ | JWT签名密钥 |
+| 变量名 | 必填 | 说明 |
+|--------|------|------|
+| `ENCRYPTION_KEY` | ❌ | API密钥加密密钥（64字符hex），已内置默认值 |
+| `JWT_SECRET` | ❌ | JWT签名密钥，已内置默认值 |
 | `ADMIN_USERNAME` | ❌ | 管理员用户名，默认 admin |
 | `ADMIN_PASSWORD` | ❌ | 管理员初始密码 |
 

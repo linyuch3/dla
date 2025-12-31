@@ -58,13 +58,11 @@
 # 拉取镜像
 docker pull ghcr.io/7d653179z/dla:latest
 
-# 运行容器
+# 运行容器（开箱即用，无需配置环境变量）
 docker run -d \\
   --name cloudpanel \\
   -p 3000:3000 \\
   -v cloudpanel_data:/app/data \\
-  -e ENCRYPTION_KEY="your-32-char-encryption-key-here" \\
-  -e JWT_SECRET="your-jwt-secret-key" \\
   ghcr.io/7d653179z/dla:latest
 \`\`\`
 
@@ -80,9 +78,6 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
-    environment:
-      - ENCRYPTION_KEY=your-32-char-encryption-key-here
-      - JWT_SECRET=your-jwt-secret-key
     restart: unless-stopped
 \`\`\`
 
@@ -96,8 +91,8 @@ services:
 
 | 变量名 | 必填 | 说明 |
 |--------|------|------|
-| \`ENCRYPTION_KEY\` | ✅ | API密钥加密密钥，**必须32字符** |
-| \`JWT_SECRET\` | ✅ | JWT签名密钥 |
+| `ENCRYPTION_KEY` | ❌ | API密钥加密密钥（64字符hex），已内置默认值 |
+| `JWT_SECRET` | ❌ | JWT签名密钥，已内置默认值 |
 | \`ADMIN_USERNAME\` | ❌ | 管理员用户名，默认 \`admin\` |
 | \`ADMIN_PASSWORD\` | ❌ | 管理员初始密码 |
 
