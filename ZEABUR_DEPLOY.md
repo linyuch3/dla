@@ -2,7 +2,7 @@
 
 ## 一键部署
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/cloudpanel)
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/PREBUILT?image=ghcr.io/7d653179z/dla:latest)
 
 或者使用 Docker 镜像手动部署：
 
@@ -16,10 +16,7 @@ ghcr.io/7d653179z/dla:latest
 
 1. 点击上方的 "Deploy on Zeabur" 按钮
 2. 登录 Zeabur 账户
-3. 填写必要的环境变量：
-   - `ENCRYPTION_KEY`: 32字符的加密密钥
-   - `JWT_SECRET`: JWT 签名密钥
-4. 点击部署
+3. 选择区域后部署（无需配置环境变量，已内置默认值）
 
 ### 方法二：手动部署 Docker 镜像
 

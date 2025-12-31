@@ -46,11 +46,11 @@
 
 ### 方式一：Zeabur 一键部署（推荐）
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/cloudpanel)
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/PREBUILT?image=ghcr.io/7d653179z/dla:latest)
 
 1. 点击上方按钮
 2. 登录 Zeabur 账户
-3. 填写环境变量后部署
+3. 选择区域后部署（无需配置环境变量）
 
 ### 方式二：Docker 部署
 
