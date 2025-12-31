@@ -1403,21 +1403,20 @@
         /* 实例网格布局 */
         .instances-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: var(--space-6);
-            margin-top: var(--space-6);
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-4);
+            margin-top: var(--space-4);
         }
         
-        /* 增强的实例卡片 */
+        /* 增强的实例卡片 - 紧凑版 */
         .instance-card {
-            border: 2px solid transparent;
-            border-radius: var(--radius-xl);
-            padding: var(--space-6);
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-            transition: all var(--transition-spring);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3);
+            background: var(--bg-primary);
+            transition: all var(--transition-normal);
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
             cursor: pointer;
             user-select: none;
         }
@@ -1428,39 +1427,16 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
             background: var(--gradient-primary);
             opacity: 0;
             transition: opacity var(--transition-normal);
         }
         
         .instance-card:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: var(--shadow-float);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
             border-color: rgba(59, 130, 246, 0.3);
-        }
-        
-        .instance-card:hover::after {
-            content: '点击选择实例';
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            animation: fadeInTooltip 0.3s ease-in-out 0.5s forwards;
-            pointer-events: none;
-            z-index: 1000;
-        }
-        
-        @keyframes fadeInTooltip {
-            from { opacity: 0; transform: translateX(-50%) translateY(5px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
         
         .instance-card:hover::before {
@@ -1475,6 +1451,74 @@
         .instance-card.stopped::before {
             background: var(--gradient-danger);
             opacity: 1;
+        }
+        
+        /* 实例表格视图 */
+        .instances-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--space-4);
+            font-size: 0.875rem;
+        }
+        
+        .instances-table th,
+        .instances-table td {
+            padding: var(--space-2) var(--space-3);
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .instances-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .instances-table tr:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .instances-table .table-actions {
+            display: flex;
+            gap: var(--space-1);
+            flex-wrap: nowrap;
+        }
+        
+        .instances-table .btn-xs {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+        
+        /* 视图切换按钮 */
+        .view-toggle {
+            display: flex;
+            gap: 2px;
+            background: var(--bg-secondary);
+            padding: 2px;
+            border-radius: var(--radius-md);
+        }
+        
+        .view-toggle-btn {
+            padding: 6px 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .view-toggle-btn.active {
+            background: var(--bg-primary);
+            color: var(--primary-500);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .view-toggle-btn:hover:not(.active) {
+            color: var(--text-primary);
         }
         
         .instance-header {
@@ -3531,7 +3575,16 @@
                         <i class="fas fa-server"></i>
                         实例管理
                     </h3>
-                    <div class="flex gap-3">
+                    <div class="flex gap-3 items-center">
+                        <!-- 视图切换 -->
+                        <div class="view-toggle">
+                            <button class="view-toggle-btn active" id="view-card-btn" title="卡片视图" onclick="switchInstanceView('card')">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button class="view-toggle-btn" id="view-table-btn" title="表格视图" onclick="switchInstanceView('table')">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
                         <button class="btn btn-secondary" id="refresh-instances-btn">
                             <i class="fas fa-sync-alt"></i>
                             刷新
@@ -4410,6 +4463,7 @@
                     <div class="flex justify-end space-x-4">
                         <button type="button" id="cancelCreateButton" class="btn btn-secondary">取消</button>
                         <button type="submit" id="submitCreateButton" class="btn btn-primary" disabled> <i class="fas fa-plus"></i> 确定创建 </button>
+                        <button type="button" id="saveAsTemplateButton" class="btn btn-success" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="saveCurrentAsTemplate()"> <i class="fas fa-save"></i> 另存为模板 </button>
                         </div>
                     </form>
         </div>
@@ -4889,6 +4943,54 @@
                 loadTemplates();
             } catch (error) {
                 showToast('删除失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 将当前创建表单保存为模板
+        async function saveCurrentAsTemplate() {
+            // 获取当前表单的值
+            const region = document.getElementById('createRegionSelect')?.value;
+            const plan = document.getElementById('createPlanSelect')?.value;
+            const image = document.getElementById('createImageSelect')?.value;
+            const userScript = document.getElementById('createUserScriptInput')?.value || '';
+            
+            if (!region || !plan || !image) {
+                showToast('请先选择区域、配置和系统镜像', 'warning');
+                return;
+            }
+            
+            // 弹出输入模板名称
+            const templateName = prompt('请输入模板名称：');
+            if (!templateName || !templateName.trim()) {
+                return;
+            }
+            
+            // 获取当前选中的 provider
+            const provider = currentApiKey?.provider || 'digitalocean';
+            
+            // 获取显示文本
+            const regionText = document.getElementById('createRegionSelect')?.selectedOptions[0]?.text || region;
+            const planText = document.getElementById('createPlanSelect')?.selectedOptions[0]?.text || plan;
+            const imageText = document.getElementById('createImageSelect')?.selectedOptions[0]?.text || image;
+            
+            try {
+                await apiCall('/api/templates', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: templateName.trim(),
+                        provider: provider,
+                        region: region,
+                        region_display: regionText,
+                        plan: plan,
+                        plan_display: planText,
+                        image: image,
+                        image_display: imageText,
+                        user_script: userScript
+                    })
+                });
+                showToast('模板保存成功！', 'success');
+            } catch (error) {
+                showToast('保存模板失败: ' + error.message, 'error');
             }
         }
         
@@ -5988,6 +6090,30 @@
             }
         }
 
+        // 当前实例视图模式 (card / table)
+        let currentInstanceView = localStorage.getItem('instanceViewMode') || 'card';
+        
+        // 切换实例视图
+        function switchInstanceView(mode) {
+            currentInstanceView = mode;
+            localStorage.setItem('instanceViewMode', mode);
+            
+            // 更新按钮状态
+            document.getElementById('view-card-btn').classList.toggle('active', mode === 'card');
+            document.getElementById('view-table-btn').classList.toggle('active', mode === 'table');
+            
+            // 重新渲染实例列表
+            if (window.cachedInstances) {
+                updateInstancesUI(window.cachedInstances);
+            }
+        }
+        
+        // 初始化视图模式
+        function initInstanceViewMode() {
+            document.getElementById('view-card-btn').classList.toggle('active', currentInstanceView === 'card');
+            document.getElementById('view-table-btn').classList.toggle('active', currentInstanceView === 'table');
+        }
+
         // 加载实例列表
         async function loadInstances() {
             const list = document.getElementById('instances-list');
@@ -6055,6 +6181,9 @@
         function updateInstancesUI(instances) {
             const list = document.getElementById('instances-list');
             
+            // 缓存实例数据用于视图切换
+            window.cachedInstances = instances;
+            
             if (instances.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
@@ -6072,99 +6201,115 @@
                 return;
             }
             
-            const instancesHtml = instances.map(instance => `
-                <div class="instance-card" data-instance-id="${instance.id}">
-                    <div class="instance-header">
-                        <div class="instance-header-top">
-                            <div class="instance-header-left">
-                                <input type="checkbox" class="instance-checkbox instance-select" data-instance-id="${instance.id}" data-instance-name="${instance.name}" onclick="event.stopPropagation()">
-                                <div>
-                                    <div class="instance-title instance-name">${instance.name}</div>
-                                    <div class="instance-status-dot" title="状态: ${instance.status}${instance.created_at ? ' | 创建时间: ' + new Date(instance.created_at).toLocaleString('zh-CN') : ''}">
-                                        <div class="status-dot ${getInstanceStatusClass(instance.status)}"></div>
-                                        <span>${getStatusDisplayName(instance.status)}</span>
+            if (currentInstanceView === 'table') {
+                // 表格视图
+                const tableHtml = `
+                    <table class="instances-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="table-select-all" onclick="toggleSelectAll(this)"></th>
+                                <th>名称</th>
+                                <th>状态</th>
+                                <th>IP地址</th>
+                                <th>地区</th>
+                                <th>配置</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${instances.map(instance => `
+                                <tr data-instance-id="${instance.id}">
+                                    <td><input type="checkbox" class="instance-checkbox instance-select" data-instance-id="${instance.id}" data-instance-name="${instance.name}"></td>
+                                    <td>
+                                        <div style="font-weight: 500;">${instance.name}</div>
+                                    </td>
+                                    <td>
+                                        <span class="instance-status-dot">
+                                            <span class="status-dot ${getInstanceStatusClass(instance.status)}"></span>
+                                            ${getStatusDisplayName(instance.status)}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${instance.ip_address ? `<span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ip_address}')" style="cursor:pointer;">${instance.ip_address}</span>` : '-'}
+                                    </td>
+                                    <td>${getRegionDisplayName(instance.region)}</td>
+                                    <td>${instance.vcpus}C/${formatMemory(instance.memory, instance.provider)}</td>
+                                    <td>
+                                        <div class="table-actions">
+                                            <button onclick="performInstanceAction('${instance.id}', 'power_on')" class="btn btn-xs btn-success" title="启动"><i class="fas fa-play"></i></button>
+                                            <button onclick="performInstanceAction('${instance.id}', 'power_off')" class="btn btn-xs btn-warning" title="关机"><i class="fas fa-stop"></i></button>
+                                            <button onclick="performInstanceAction('${instance.id}', 'reboot')" class="btn btn-xs btn-secondary" title="重启"><i class="fas fa-redo"></i></button>
+                                            <button onclick="deleteInstance('${instance.id}')" class="btn btn-xs btn-danger" title="删除"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                list.innerHTML = tableHtml;
+            } else {
+                // 卡片视图（紧凑版）
+                const instancesHtml = instances.map(instance => `
+                    <div class="instance-card" data-instance-id="${instance.id}">
+                        <div class="instance-header">
+                            <div class="instance-header-top">
+                                <div class="instance-header-left">
+                                    <input type="checkbox" class="instance-checkbox instance-select" data-instance-id="${instance.id}" data-instance-name="${instance.name}" onclick="event.stopPropagation()">
+                                    <div>
+                                        <div class="instance-title instance-name" style="font-size: 1rem;">${instance.name}</div>
+                                        <div class="instance-status-dot">
+                                            <div class="status-dot ${getInstanceStatusClass(instance.status)}"></div>
+                                            <span>${getStatusDisplayName(instance.status)}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="instance-actions-row">
-                            <div class="instance-actions">
-                            <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'power_on')" 
-                                class="btn btn-sm btn-success" title="启动">
-                                <i class="fas fa-play"></i>
-                            </button>
-                            <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'power_off')" 
-                                class="btn btn-sm btn-warning" title="关机">
-                                <i class="fas fa-stop"></i>
-                            </button>
-                            <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'reboot')" 
-                                class="btn btn-sm btn-secondary" title="重启">
-                                <i class="fas fa-redo"></i>
-                            </button>
-                            ${instance.provider !== 'linode' ? `
-                                <button onclick="event.stopPropagation(); showChangeIPModal('${instance.id}', true, 'IPv4')" 
-                                    class="btn btn-sm btn-warning" title="更换IPv4">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </button>
-                                ${instance.ipv6_address && instance.ipv6_address !== '分配中...' ?
-                                    `<button onclick="event.stopPropagation(); showChangeIPModal('${instance.id}', true, 'IPv6')" 
-                                        class="btn btn-sm btn-info" title="更换IPv6">
-                                        <i class="fas fa-exchange-alt"></i>
-                                    </button>` :
-                                    `<button onclick="event.stopPropagation(); showChangeIPModal('${instance.id}', false, 'IPv6')" 
-                                        class="btn btn-sm btn-success" title="附加IPv6">
-                                        <i class="fas fa-plus"></i>
-                                    </button>`
-                                }
-                            ` : ''}
-                            <button onclick="event.stopPropagation(); deleteInstance('${instance.id}')" 
-                                class="btn btn-sm btn-danger" title="删除">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="instance-info">
-                        <div class="instance-info-item">
-                            <div class="instance-info-label">地区</div>
-                            <div class="instance-info-value">${getRegionDisplayName(instance.region)}</div>
-                        </div>
-                        <div class="instance-info-item">
-                            <div class="instance-info-label">IP 地址</div>
-                            <div class="instance-info-value">
-                                <div class="ip-addresses">
-                                    <div class="ip-item">
-                                        <span class="ip-label">IPv4:</span>
-                                        ${instance.ip_address ? 
-                                            `<span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ip_address}')" title="点击复制IPv4地址">${instance.ip_address}</span>` : 
-                                            '<span class="ip-empty"></span>'
-                                        }
-                                    </div>
-                                    <div class="ip-item">
-                                        <span class="ip-label">IPv6:</span>
-                                        ${instance.ipv6_address && instance.ipv6_address !== '分配中...' ? 
-                                            `<span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ipv6_address}')" title="点击复制IPv6地址">${instance.ipv6_address}</span>` : 
-                                            '<span class="ip-empty"></span>'
-                                        }
-                                    </div>
+                            <div class="instance-actions-row">
+                                <div class="instance-actions">
+                                    <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'power_on')" class="btn btn-sm btn-success" title="启动"><i class="fas fa-play"></i></button>
+                                    <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'power_off')" class="btn btn-sm btn-warning" title="关机"><i class="fas fa-stop"></i></button>
+                                    <button onclick="event.stopPropagation(); performInstanceAction('${instance.id}', 'reboot')" class="btn btn-sm btn-secondary" title="重启"><i class="fas fa-redo"></i></button>
+                                    <button onclick="event.stopPropagation(); deleteInstance('${instance.id}')" class="btn btn-sm btn-danger" title="删除"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>
-                        <div class="instance-info-item">
-                            <div class="instance-info-label">配置</div>
-                            <div class="instance-info-value">${instance.vcpus} CPU / ${formatMemory(instance.memory, instance.provider)} RAM / ${formatDisk(instance.disk, instance.provider)} SSD</div>
+                        <div class="instance-info" style="grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem;">
+                            <div class="instance-info-item">
+                                <div class="instance-info-label">地区</div>
+                                <div class="instance-info-value">${getRegionDisplayName(instance.region)}</div>
+                            </div>
+                            <div class="instance-info-item">
+                                <div class="instance-info-label">IP 地址</div>
+                                <div class="instance-info-value">
+                                    IPv4: ${instance.ip_address ? `<span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ip_address}')">${instance.ip_address}</span>` : '-'}
+                                    ${instance.ipv6_address && instance.ipv6_address !== '分配中...' ? `<br>IPv6: <span class="instance-ip-clickable" onclick="copyToClipboard('${instance.ipv6_address}')">${instance.ipv6_address}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="instance-info-item">
+                                <div class="instance-info-label">配置</div>
+                                <div class="instance-info-value">${instance.vcpus} CPU / ${formatMemory(instance.memory, instance.provider)} RAM / ${formatDisk(instance.disk, instance.provider)} SSD</div>
+                            </div>
+                            <div class="instance-info-item">
+                                <div class="instance-info-label">创建时间</div>
+                                <div class="instance-info-value">${formatCreateTime(instance.created_at)}</div>
+                            </div>
+                            ${getTransferInfo(instance)}
                         </div>
-                        <div class="instance-info-item">
-                            <div class="instance-info-label">创建时间</div>
-                            <div class="instance-info-value">${formatCreateTime(instance.created_at)}</div>
-                        </div>
-                        ${getTransferInfo(instance)}
                     </div>
-                </div>
-            `).join('');
-            
-            list.innerHTML = `<div class="instances-grid">${instancesHtml}</div>`;
+                `).join('');
+                
+                list.innerHTML = `<div class="instances-grid">${instancesHtml}</div>`;
+            }
+        }
+        
+        // 表格全选
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.instance-select');
+            checkboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+                updateSelectedInstances();
+            });
         }
 
         function getInstanceStatusClass(status) {
@@ -8519,6 +8664,9 @@
             
             // 加载分组列表
             loadCachedKeyGroups();
+            
+            // 初始化实例视图模式
+            initInstanceViewMode();
             
             // 登录表单
             document.getElementById('login-form').addEventListener('submit', function(e) {
