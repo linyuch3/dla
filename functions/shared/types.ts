@@ -1,9 +1,13 @@
 // types.ts - 全局类型定义
 
+// 导入适配器类型
+import { D1Database } from './db-adapter';
+import { KVNamespace } from './kv-adapter';
+
 export interface Env {
-  // Cloudflare 绑定
+  // 数据库和存储绑定（兼容Cloudflare和本地）
   DB: D1Database;
-  KV: KVNamespace;
+  KV?: KVNamespace;
   
   // 环境变量
   ENCRYPTION_KEY: string;
@@ -44,6 +48,68 @@ export interface ApiKey {
   health_status: 'unknown' | 'healthy' | 'unhealthy' | 'checking' | 'limited';
   last_checked?: string;
   error_message?: string;
+  key_group: 'personal' | 'rental'; // 密钥分组：自用 | 租机
+}
+
+// 开机模板类型
+export interface InstanceTemplate {
+  id: number;
+  user_id: number;
+  name: string;
+  provider: 'digitalocean' | 'linode' | 'azure';
+  region: string;
+  plan: string;
+  image: string;
+  region_display?: string;
+  plan_display?: string;
+  image_display?: string;
+  disk_size?: number;
+  enable_ipv6: boolean;
+  root_password?: string;
+  ssh_keys?: string;
+  tags?: string;
+  user_data?: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// 自动补机配置类型
+export interface AutoReplenishConfig {
+  id: number;
+  user_id: number;
+  enabled: boolean;
+  monitor_type: 'instances' | 'api_keys';
+  monitored_instances: string; // JSON数组
+  monitored_api_keys: string;  // JSON数组
+  instance_key_mapping: string; // JSON数组，存储机器与密钥的映射
+  template_id: number | null;
+  key_group: 'personal' | 'rental';
+  check_interval: number;
+  notify_telegram: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// 补机日志类型
+export interface ReplenishLog {
+  id: number;
+  user_id: number;
+  trigger_type: 'instance_down' | 'api_invalid' | 'manual';
+  original_instance_id?: string;
+  original_instance_name?: string;
+  original_api_key_id?: number;
+  new_instance_id?: string;
+  new_instance_name?: string;
+  new_api_key_id?: number;
+  template_id?: number;
+  new_ipv4?: string;
+  new_ipv6?: string;
+  root_password?: string;
+  status: 'pending' | 'success' | 'failed';
+  error_message?: string;
+  details?: string;
+  created_at: string;
 }
 
 export interface SocksProxy {
@@ -201,7 +267,7 @@ export interface UnifiedAccountOverview {
 export interface RequestContext {
   request: Request;
   env: Env;
-  ctx: ExecutionContext;
+  params?: Record<string, string>;
   session?: Session;
   user?: User;
   next: () => Promise<Response>;

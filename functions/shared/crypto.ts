@@ -1,5 +1,6 @@
 // crypto.ts - 加密服务
 import { CryptoError } from './types';
+import bcrypt from 'bcryptjs';
 
 export class CryptoService {
   private static readonly ALGORITHM = 'AES-GCM';
@@ -237,6 +238,12 @@ export class PasswordService {
    */
   static async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
     try {
+      // 检测是否是bcrypt哈希（以$2a$, $2b$, $2y$开头）
+      if (hashedPassword.startsWith('$2a$') || hashedPassword.startsWith('$2b$') || hashedPassword.startsWith('$2y$')) {
+        // 使用bcrypt验证
+        return await bcrypt.compare(password, hashedPassword);
+      }
+      // 原有的自定义哈希验证逻辑
       // 解码哈希密码
       const data = new Uint8Array(
         atob(hashedPassword).split('').map(c => c.charCodeAt(0))

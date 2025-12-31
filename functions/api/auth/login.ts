@@ -80,7 +80,7 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
         username: user.username,
         isAdmin: user.is_admin
       },
-      sessionId // 可能在前端需要
+      sessionId
     };
 
     // 创建响应并设置 Cookie

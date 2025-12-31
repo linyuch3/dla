@@ -130,4 +130,66 @@ export async function onRequestDelete(context: RequestContext): Promise<Response
 
     return createErrorResponse('删除API密钥失败', 500, 'DELETE_API_KEY_FAILED');
   }
+}
+
+// PUT /api/apikeys/{id} - 更新API密钥（分组等）
+export async function onRequestPut(context: RequestContext): Promise<Response> {
+  try {
+    // 验证用户身份
+    const authResult = await authMiddleware(context);
+    if (authResult) return authResult;
+
+    const { request, env } = context;
+    const session = context.session!;
+
+    // 从URL路径中获取API密钥ID
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const keyIdStr = pathParts[pathParts.length - 1];
+    const keyId = parseInt(keyIdStr);
+
+    if (!keyId || isNaN(keyId)) {
+      return createErrorResponse('无效的API密钥ID', 400, 'INVALID_API_KEY_ID');
+    }
+
+    // 获取数据库服务
+    const db = createDatabaseService(env);
+
+    // 验证API密钥是否存在且属于当前用户
+    const apiKey = await db.getApiKeyById(keyId);
+    if (!apiKey) {
+      return createErrorResponse('API密钥不存在', 404, 'API_KEY_NOT_FOUND');
+    }
+
+    if (apiKey.user_id !== session.userId) {
+      return createErrorResponse('无权限访问此API密钥', 403, 'ACCESS_DENIED');
+    }
+
+    // 获取请求体
+    const body = await request.json() as { key_group?: string };
+
+    // 更新分组（允许任意自定义标签）
+    if (body.key_group !== undefined) {
+      const groupName = body.key_group.trim();
+      if (groupName.length > 50) {
+        return createErrorResponse('分组名称不能超过50个字符', 400, 'INVALID_KEY_GROUP');
+      }
+      await db.updateApiKeyGroup(keyId, groupName);
+    }
+
+    return createSuccessResponse({
+      id: keyId,
+      key_group: body.key_group || apiKey.key_group,
+      message: 'API密钥已更新'
+    }, 'API密钥已更新');
+
+  } catch (error) {
+    console.error('更新API密钥失败:', error);
+
+    if (error instanceof ValidationError) {
+      return createErrorResponse(error.message, error.statusCode, error.code);
+    }
+
+    return createErrorResponse('更新API密钥失败', 500, 'UPDATE_API_KEY_FAILED');
+  }
 } 

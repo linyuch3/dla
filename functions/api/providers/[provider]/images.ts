@@ -67,4 +67,5 @@ export async function onRequest(context: RequestContext) {
     }
 }
 
- 
+// 导出GET方法
+export const onRequestGet = onRequest;

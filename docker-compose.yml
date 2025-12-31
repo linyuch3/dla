@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  cloudpanel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudpanel
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # 服务器配置
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      
+      # 数据库配置
+      - DATABASE_PATH=/app/data/cloudpanel.db
+      
+      # 加密和认证配置
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-3d4d5108f8bc39a35877e17ebe002962818a20bad3170e77211550554295a394}
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-secret-key-in-production}
+      - SESSION_DURATION=${SESSION_DURATION:-86400000}
+      
+      # 管理员账户（首次启动时创建）
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      
+      # Telegram配置（可选）
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ADMIN_ID=${TELEGRAM_ADMIN_ID:-}
+      
+      # 缓存配置
+      - CACHE_TTL=${CACHE_TTL:-3600}
+      
+      # 时区设置
+      - TZ=Asia/Shanghai
+      
+    volumes:
+      # 持久化数据库文件
+      - cloudpanel_data:/app/data
+      
+      # 可选：挂载自定义配置
+      # - ./config:/app/config:ro
+      
+    networks:
+      - cloudpanel_network
+      
+    # 资源限制（可选）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 256M
+
+networks:
+  cloudpanel_network:
+    driver: bridge
+
+volumes:
+  cloudpanel_data:
+    driver: local

@@ -8,6 +8,7 @@ interface AddApiKeyRequest {
   name: string;
   key: string;
   provider: 'digitalocean' | 'linode' | 'azure';
+  key_group?: string;
 }
 
 function validateAddApiKeyRequest(data: any): AddApiKeyRequest {
@@ -15,7 +16,7 @@ function validateAddApiKeyRequest(data: any): AddApiKeyRequest {
     throw new ValidationError('请求数据无效');
   }
 
-  const { name, key, provider } = data;
+  const { name, key, provider, key_group } = data;
 
   if (!name || typeof name !== 'string') {
     throw new ValidationError('API 密钥名称不能为空', 'name');
@@ -31,6 +32,7 @@ function validateAddApiKeyRequest(data: any): AddApiKeyRequest {
 
   const trimmedName = name.trim();
   const trimmedKey = key.trim();
+  const trimmedGroup = key_group ? String(key_group).trim() : '自用';
 
   if (trimmedName.length < 1 || trimmedName.length > 100) {
     throw new ValidationError('API 密钥名称长度应在 1-100 字符之间', 'name');
@@ -44,10 +46,15 @@ function validateAddApiKeyRequest(data: any): AddApiKeyRequest {
     throw new ValidationError('不支持的云服务商', 'provider');
   }
 
+  if (trimmedGroup.length > 50) {
+    throw new ValidationError('分组名称不能超过50个字符', 'key_group');
+  }
+
   return {
     name: trimmedName,
     key: trimmedKey,
-    provider: provider as 'digitalocean' | 'linode' | 'azure'
+    provider: provider as 'digitalocean' | 'linode' | 'azure',
+    key_group: trimmedGroup
   };
 }
 
@@ -224,7 +231,8 @@ export async function onRequestGet(context: RequestContext): Promise<Response> {
       created_at: key.created_at,
       health_status: key.health_status,
       last_checked: key.last_checked,
-      error_message: key.error_message
+      error_message: key.error_message,
+      key_group: key.key_group || 'personal' // 添加分组信息
     }));
 
     return createSuccessResponse({
@@ -246,7 +254,7 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
     if (authResult) return authResult;
 
     const { request, env, session } = context;
-    const { name, key, provider } = await validateRequestData(request, validateAddApiKeyRequest);
+    const { name, key, provider, key_group } = await validateRequestData(request, validateAddApiKeyRequest);
     const db = createDatabaseService(env);
 
 
@@ -279,7 +287,7 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
         throw new Error('加密服务返回了空值，已阻止写入数据库。');
     }
 
-    const keyId = await db.createApiKey(name, encryptedKey, session!.userId, provider);
+    const keyId = await db.createApiKey(name, encryptedKey, session!.userId, provider, key_group);
 
     const now = new Date().toISOString();
     const responseData = {

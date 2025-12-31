@@ -3235,6 +3235,15 @@
                                 <span>API密钥管理</span>
                             </button>
                             <div class="user-menu-separator"></div>
+                            <button class="user-menu-item" id="auto-replenish-btn">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>自动补机</span>
+                            </button>
+                            <button class="user-menu-item" id="templates-btn">
+                                <i class="fas fa-file-alt"></i>
+                                <span>开机模板</span>
+                            </button>
+                            <div class="user-menu-separator"></div>
                             <button class="user-menu-item" id="logout-btn">
                                 <i class="fas fa-sign-out-alt"></i>
                                 <span>登出</span>
@@ -3836,6 +3845,22 @@
                     </select>
                 </div>
                 
+                <div class="form-group">
+                    <label class="form-label">分组</label>
+                    <div style="position: relative;">
+                        <input type="text" id="api-key-group" class="form-input" 
+                               placeholder="输入或选择分组"
+                               list="key-groups-datalist"
+                               value="自用"
+                               style="padding-right: 30px;">
+                        <i class="fas fa-chevron-down" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; font-size: 12px;"></i>
+                    </div>
+                    <div class="form-help">
+                        <i class="fas fa-lightbulb" style="color: var(--warning-500);"></i>
+                        输入新名称即可创建新分组，如：VIP池、测试组
+                    </div>
+                </div>
+                
                 <!-- 通用API密钥输入 -->
                 <div class="form-group" id="general-api-key-group">
                     <label class="form-label">API 密钥</label>
@@ -3906,6 +3931,254 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 自动补机模态框 -->
+    <div id="auto-replenish-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-sync-alt"></i>
+                    自动补机管理
+                </h3>
+                <button class="modal-close" onclick="closeAutoReplenishModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <!-- 功能说明 -->
+                <div class="mb-4 p-3 rounded-lg" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <h4 class="font-semibold text-sm mb-2" style="color: var(--primary-600);">
+                        <i class="fas fa-info-circle"></i> 功能说明
+                    </h4>
+                    <p class="text-xs" style="color: var(--text-secondary); line-height: 1.6;">
+                        自动补机是一种"双重保险"机制：<br>
+                        1. 创建补机任务，绑定需要监控的机器和API密钥<br>
+                        2. 当监控的机器失效时，系统自动使用指定模板创建新机器<br>
+                        3. 新机器可自动加入监控列表，形成持续保护
+                    </p>
+                </div>
+                
+                <!-- 任务列表标题和添加按钮 -->
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold">补机任务列表</h4>
+                    <button class="btn btn-primary btn-sm" onclick="showAddReplenishTaskModal()">
+                        <i class="fas fa-plus"></i>
+                        添加任务
+                    </button>
+                </div>
+                
+                <!-- 任务列表 -->
+                <div id="replenish-tasks-list">
+                    <div class="text-center py-6" style="color: var(--text-secondary);">
+                        <i class="fas fa-tasks text-3xl mb-2" style="opacity: 0.5;"></i>
+                        <p class="text-sm">暂无补机任务</p>
+                        <p class="text-xs mt-1">点击"添加任务"创建新的自动补机任务</p>
+                    </div>
+                </div>
+                
+                <!-- 补机日志 -->
+                <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold text-sm">最近补机日志</h4>
+                        <button class="btn btn-sm" onclick="openReplenishLogsModal()">
+                            <i class="fas fa-history"></i>
+                            查看全部
+                        </button>
+                    </div>
+                    <div id="recent-replenish-logs" class="text-xs" style="color: var(--text-secondary);">
+                        暂无补机记录
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑补机任务模态框 -->
+    <div id="add-replenish-task-modal" class="modal-overlay hidden" style="z-index: 1001;">
+        <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-plus-circle"></i>
+                    <span id="replenish-task-modal-title">添加补机任务</span>
+                </h3>
+                <button class="modal-close" onclick="closeAddReplenishTaskModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <input type="hidden" id="edit-task-id" value="">
+                
+                <!-- 任务名称 -->
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-tag"></i>
+                        任务名称 *
+                    </label>
+                    <input type="text" id="task-name" class="form-input" placeholder="例如：Linode日本机器监控">
+                    <div class="form-help">为任务起一个便于识别的名称</div>
+                </div>
+                
+                <!-- 启用状态 -->
+                <div class="flex items-center justify-between mb-4 p-3 rounded-lg" style="background: var(--bg-secondary);">
+                    <div>
+                        <h4 class="font-semibold text-sm">启用此任务</h4>
+                        <p class="text-xs" style="color: var(--text-secondary);">关闭后此任务不会执行监控</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="task-enabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <!-- 选择API密钥 -->
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-key"></i>
+                        选择监控的API密钥 *
+                    </label>
+                    <div id="task-apikeys-list" class="checkbox-list" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px;">
+                        <div class="text-xs text-center py-2" style="color: var(--text-secondary);">加载中...</div>
+                    </div>
+                    <div class="form-help">勾选需要监控的API密钥</div>
+                </div>
+                
+                <!-- 选择机器 -->
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-server"></i>
+                        选择监控的机器 *
+                    </label>
+                    <div id="task-instances-list" class="checkbox-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px;">
+                        <div class="text-xs text-center py-2" style="color: var(--text-secondary);">请先勾选上方的API密钥</div>
+                    </div>
+                    <div class="form-help">勾选需要监控的机器，失效时将触发补机</div>
+                </div>
+                
+                <!-- 补机模板 -->
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-file-alt"></i>
+                        补机模板 *
+                    </label>
+                    <select id="task-template" class="form-select">
+                        <option value="">选择补机模板</option>
+                    </select>
+                    <div class="form-help">机器失效后使用此模板创建新机器</div>
+                </div>
+                
+                <!-- 备用密钥分组 -->
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-layer-group"></i>
+                        备用密钥分组
+                    </label>
+                    <input type="text" id="task-backup-group" class="form-input" list="existing-groups-list" placeholder="输入或选择分组名称">
+                    <datalist id="existing-groups-list"></datalist>
+                    <div class="form-help">机器失效时从此分组中选择健康密钥进行补机</div>
+                </div>
+                
+                <!-- 检查间隔 -->
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-clock"></i>
+                        检查间隔
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="number" id="task-check-interval" class="form-input" style="flex: 1;" value="5" min="1" max="1440">
+                        <select id="task-check-interval-unit" class="form-select" style="width: 100px;">
+                            <option value="minutes">分钟</option>
+                            <option value="hours">小时</option>
+                        </select>
+                    </div>
+                    <div class="form-help">每隔多长时间检查一次机器状态</div>
+                </div>
+                
+                <!-- 自动将新机器加入监控 -->
+                <div class="flex items-center justify-between mb-4 p-3 rounded-lg" style="background: var(--bg-secondary);">
+                    <div>
+                        <h4 class="font-semibold text-sm">
+                            <i class="fas fa-sync-alt" style="margin-right: 6px; color: var(--primary-500);"></i>
+                            自动监控新机器
+                        </h4>
+                        <p class="text-xs" style="color: var(--text-secondary);">补机成功后，新机器自动加入此任务的监控列表</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="task-auto-add-instance" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="flex gap-2 pt-3" style="border-top: 1px solid var(--border-color);">
+                    <button class="btn btn-primary" onclick="saveReplenishTask()">
+                        <i class="fas fa-save"></i>
+                        保存任务
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeAddReplenishTaskModal()">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 开机模板管理模态框 -->
+    <div id="templates-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-file-alt"></i>
+                    开机模板管理
+                </h3>
+                <button class="modal-close" onclick="closeTemplatesModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div class="mb-4">
+                    <p class="text-sm" style="color: var(--text-secondary);">管理用于自动补机的服务器配置模板</p>
+                    <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.8;">
+                        <i class="fas fa-info-circle"></i>
+                        提示：在创建新实例时点击"另存为模板"按钮可添加模板
+                    </p>
+                </div>
+                
+                <div id="templates-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center py-8" style="color: var(--text-secondary);">
+                        <i class="fas fa-file-alt text-3xl mb-2" style="opacity: 0.5;"></i>
+                        <p class="text-sm">暂无模板</p>
+                        <p class="text-xs mt-1" style="opacity: 0.7;">创建实例时点击"另存为模板"即可保存</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 补机日志模态框 -->
+    <div id="replenish-logs-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-history"></i>
+                    补机日志
+                </h3>
+                <button class="modal-close" onclick="closeReplenishLogsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div id="replenish-logs-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center py-8" style="color: var(--text-secondary);">
+                        <i class="fas fa-history text-3xl mb-2" style="opacity: 0.5;"></i>
+                        <p class="text-sm">暂无补机记录</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -4177,12 +4450,490 @@
         let currentUser = null;
         let apiKeys = [];
         let selectedApiKeyId = null;
+        let cachedKeyGroups = []; // 缓存的分组列表
 
         // 分页相关状态
         let currentPage = 1;
         let pageSize = 10;
         let totalKeys = 0;
         let currentProvider = 'digitalocean'; // 当前选中的服务商标签页，默认为DigitalOcean
+
+        // 加载分组列表（从已有的API密钥中收集）
+        async function loadCachedKeyGroups() {
+            try {
+                const data = await apiCall('/api/apikeys');
+                const keys = data.data?.keys || [];
+                
+                // 收集所有唯一的分组名称
+                const groupSet = new Set();
+                keys.forEach(key => {
+                    if (key.key_group) {
+                        groupSet.add(key.key_group);
+                    }
+                });
+                
+                // 添加默认建议
+                groupSet.add('自用');
+                groupSet.add('租机');
+                
+                cachedKeyGroups = Array.from(groupSet);
+                
+                // 创建或更新全局datalist
+                let datalist = document.getElementById('key-groups-datalist');
+                if (!datalist) {
+                    datalist = document.createElement('datalist');
+                    datalist.id = 'key-groups-datalist';
+                    document.body.appendChild(datalist);
+                }
+                datalist.innerHTML = cachedKeyGroups.map(g => `<option value="${g}">`).join('');
+            } catch (error) {
+                console.error('加载分组列表失败:', error);
+                cachedKeyGroups = ['自用', '租机'];
+            }
+        }
+
+        // 自动补机相关变量
+        let replenishTasks = [];
+        let allApiKeys = [];
+
+        // 显示 toast 消息
+        function showToast(message, type = 'info') {
+            showMessage(message, type);
+        }
+
+        // 自动补机模态框
+        function openAutoReplenishModal() {
+            document.getElementById('auto-replenish-modal').classList.remove('hidden');
+            loadReplenishTasks();
+        }
+        
+        function closeAutoReplenishModal() {
+            document.getElementById('auto-replenish-modal').classList.add('hidden');
+        }
+        
+        function showAddReplenishTaskModal(taskId = null) {
+            document.getElementById('add-replenish-task-modal').classList.remove('hidden');
+            document.getElementById('edit-task-id').value = taskId || '';
+            document.getElementById('replenish-task-modal-title').textContent = taskId ? '编辑补机任务' : '添加补机任务';
+            
+            // 重置表单
+            document.getElementById('task-name').value = '';
+            document.getElementById('task-enabled').checked = true;
+            document.getElementById('task-auto-add-instance').checked = true;
+            document.getElementById('task-check-interval').value = '5';
+            document.getElementById('task-check-interval-unit').value = 'minutes';
+            document.getElementById('task-backup-group').value = '';
+            document.getElementById('task-instances-list').innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">请先勾选上方的API密钥</div>';
+            
+            // 加载数据
+            loadTaskApiKeys().then(() => {
+                loadTaskTemplates();
+                loadTaskKeyGroups();
+                
+                if (taskId) {
+                    loadTaskForEdit(taskId);
+                }
+            });
+        }
+        
+        function closeAddReplenishTaskModal() {
+            document.getElementById('add-replenish-task-modal').classList.add('hidden');
+        }
+        
+        // 加载补机任务列表
+        async function loadReplenishTasks() {
+            try {
+                const data = await apiCall('/api/auto-replenish/tasks');
+                replenishTasks = data.data?.tasks || [];
+                renderReplenishTasks();
+            } catch (error) {
+                console.error('加载补机任务失败:', error);
+                replenishTasks = [];
+                renderReplenishTasks();
+            }
+        }
+        
+        // 渲染任务列表
+        function renderReplenishTasks() {
+            const container = document.getElementById('replenish-tasks-list');
+            
+            if (replenishTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6" style="color: var(--text-secondary);">
+                        <i class="fas fa-tasks text-3xl mb-2" style="opacity: 0.5;"></i>
+                        <p class="text-sm">暂无补机任务</p>
+                        <p class="text-xs mt-1">点击"添加任务"创建新的自动补机任务</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = replenishTasks.map(task => `
+                <div class="p-3 mb-2 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="status-badge ${task.enabled ? 'status-active' : 'status-inactive'} text-xs">
+                                ${task.enabled ? '启用' : '停用'}
+                            </span>
+                            <span class="font-semibold">${task.name}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn btn-sm" style="padding: 4px 8px;" onclick="toggleTaskEnabled(${task.id}, ${!task.enabled})" title="${task.enabled ? '停用' : '启用'}">
+                                <i class="fas fa-${task.enabled ? 'pause' : 'play'}"></i>
+                            </button>
+                            <button class="btn btn-sm" style="padding: 4px 8px;" onclick="showAddReplenishTaskModal(${task.id})" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" onclick="deleteReplenishTask(${task.id})" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs" style="color: var(--text-secondary);">
+                        <span><i class="fas fa-server"></i> ${task.instance_count || 0}台机器</span>
+                        <span class="ml-3"><i class="fas fa-key"></i> ${task.api_key_count || 0}个密钥</span>
+                        <span class="ml-3"><i class="fas fa-file-alt"></i> ${task.template_name || '未设置模板'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 加载任务表单的API密钥列表
+        async function loadTaskApiKeys() {
+            try {
+                const data = await apiCall('/api/apikeys');
+                allApiKeys = data.data?.keys || data.data || [];
+                const container = document.getElementById('task-apikeys-list');
+                
+                if (allApiKeys.length === 0) {
+                    container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">暂无API密钥，请先添加</div>';
+                } else {
+                    container.innerHTML = allApiKeys.map(key => `
+                        <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                            <input type="checkbox" class="task-apikey-checkbox" value="${key.id}" 
+                                   data-name="${key.name}" data-provider="${key.provider}"
+                                   onchange="onTaskApiKeyChange()">
+                            <span class="text-sm">${key.name}</span>
+                            <span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary);">${key.provider}</span>
+                            ${key.key_group ? `<span class="text-xs" style="color: var(--text-secondary);">[${key.key_group}]</span>` : ''}
+                        </label>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载API密钥失败:', error);
+            }
+        }
+        
+        // 当API密钥选择变化时，加载对应的机器列表
+        async function onTaskApiKeyChange() {
+            const selectedKeyIds = Array.from(document.querySelectorAll('.task-apikey-checkbox:checked')).map(cb => cb.value);
+            const container = document.getElementById('task-instances-list');
+            
+            if (selectedKeyIds.length === 0) {
+                container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">请先勾选上方的API密钥</div>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+            
+            try {
+                let allInstances = [];
+                for (const keyId of selectedKeyIds) {
+                    const data = await apiCall(`/api/instances?api_key_id=${keyId}`);
+                    const instances = data.data?.instances || [];
+                    instances.forEach(inst => {
+                        inst._apiKeyId = keyId;
+                        const keyInfo = allApiKeys.find(k => k.id == keyId);
+                        inst._apiKeyName = keyInfo?.name || keyId;
+                    });
+                    allInstances = allInstances.concat(instances);
+                }
+                
+                if (allInstances.length === 0) {
+                    container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">所选密钥下暂无机器</div>';
+                } else {
+                    container.innerHTML = allInstances.map(inst => `
+                        <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                            <input type="checkbox" class="task-instance-checkbox" value="${inst.id}" 
+                                   data-api-key-id="${inst._apiKeyId}">
+                            <span class="text-sm">${inst.name || inst.label}</span>
+                            <span class="text-xs" style="color: var(--text-secondary);">${inst.ip_address || ''}</span>
+                            <span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary);">${inst._apiKeyName}</span>
+                        </label>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载机器列表失败:', error);
+                container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--danger-500);">加载失败</div>';
+            }
+        }
+        
+        // 加载模板列表
+        async function loadTaskTemplates() {
+            try {
+                const data = await apiCall('/api/templates');
+                const templates = data.data?.templates || [];
+                const select = document.getElementById('task-template');
+                select.innerHTML = '<option value="">选择补机模板</option>' + 
+                    templates.map(t => `<option value="${t.id}">${t.name} (${t.provider})</option>`).join('');
+            } catch (error) {
+                console.error('加载模板失败:', error);
+            }
+        }
+        
+        // 加载分组列表到任务表单
+        function loadTaskKeyGroups() {
+            const datalist = document.getElementById('existing-groups-list');
+            datalist.innerHTML = cachedKeyGroups.map(g => `<option value="${g}">`).join('');
+        }
+        
+        // 加载任务进行编辑
+        async function loadTaskForEdit(taskId) {
+            try {
+                const data = await apiCall(`/api/auto-replenish/tasks/${taskId}`);
+                const task = data.data;
+                
+                document.getElementById('task-name').value = task.name;
+                document.getElementById('task-enabled').checked = task.enabled;
+                document.getElementById('task-template').value = task.template_id || '';
+                document.getElementById('task-backup-group').value = task.backup_group || '';
+                document.getElementById('task-auto-add-instance').checked = task.auto_add_new_instance !== false;
+                
+                const checkInterval = task.check_interval || 5;
+                if (checkInterval >= 60 && checkInterval % 60 === 0) {
+                    document.getElementById('task-check-interval').value = checkInterval / 60;
+                    document.getElementById('task-check-interval-unit').value = 'hours';
+                } else {
+                    document.getElementById('task-check-interval').value = checkInterval;
+                    document.getElementById('task-check-interval-unit').value = 'minutes';
+                }
+                
+                const apiKeyIds = JSON.parse(task.api_key_ids || '[]');
+                apiKeyIds.forEach(id => {
+                    const cb = document.querySelector(`.task-apikey-checkbox[value="${id}"]`);
+                    if (cb) cb.checked = true;
+                });
+                
+                if (apiKeyIds.length > 0) {
+                    await onTaskApiKeyChange();
+                    setTimeout(() => {
+                        const instanceIds = JSON.parse(task.instance_ids || '[]');
+                        instanceIds.forEach(id => {
+                            const cb = document.querySelector(`.task-instance-checkbox[value="${id}"]`);
+                            if (cb) cb.checked = true;
+                        });
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('加载任务失败:', error);
+                showToast('加载任务失败', 'error');
+            }
+        }
+        
+        // 保存任务
+        async function saveReplenishTask() {
+            try {
+                const taskId = document.getElementById('edit-task-id').value;
+                const name = document.getElementById('task-name').value.trim();
+                const enabled = document.getElementById('task-enabled').checked;
+                const templateId = document.getElementById('task-template').value;
+                const backupGroup = document.getElementById('task-backup-group').value;
+                const autoAddInstance = document.getElementById('task-auto-add-instance').checked;
+                
+                const intervalValue = parseInt(document.getElementById('task-check-interval').value) || 5;
+                const intervalUnit = document.getElementById('task-check-interval-unit').value;
+                const checkInterval = intervalUnit === 'hours' ? intervalValue * 60 : intervalValue;
+                
+                const selectedApiKeys = Array.from(document.querySelectorAll('.task-apikey-checkbox:checked')).map(cb => cb.value);
+                const selectedInstances = Array.from(document.querySelectorAll('.task-instance-checkbox:checked')).map(cb => ({
+                    id: cb.value,
+                    apiKeyId: cb.dataset.apiKeyId
+                }));
+                
+                if (!name) {
+                    showToast('请输入任务名称', 'error');
+                    return;
+                }
+                if (selectedApiKeys.length === 0) {
+                    showToast('请至少选择一个API密钥', 'error');
+                    return;
+                }
+                if (selectedInstances.length === 0) {
+                    showToast('请至少选择一台机器', 'error');
+                    return;
+                }
+                if (!templateId) {
+                    showToast('请选择补机模板', 'error');
+                    return;
+                }
+                
+                const taskData = {
+                    name,
+                    enabled,
+                    template_id: parseInt(templateId),
+                    backup_group: backupGroup,
+                    api_key_ids: JSON.stringify(selectedApiKeys),
+                    instance_ids: JSON.stringify(selectedInstances.map(i => i.id)),
+                    instance_key_mapping: JSON.stringify(selectedInstances),
+                    auto_add_new_instance: autoAddInstance,
+                    check_interval: checkInterval
+                };
+                
+                if (taskId) {
+                    await apiCall(`/api/auto-replenish/tasks/${taskId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(taskData)
+                    });
+                    showToast('任务已更新', 'success');
+                } else {
+                    await apiCall('/api/auto-replenish/tasks', {
+                        method: 'POST',
+                        body: JSON.stringify(taskData)
+                    });
+                    showToast('任务已创建', 'success');
+                }
+                
+                closeAddReplenishTaskModal();
+                loadReplenishTasks();
+            } catch (error) {
+                showToast('保存任务失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 切换任务启用状态
+        async function toggleTaskEnabled(taskId, enabled) {
+            try {
+                await apiCall(`/api/auto-replenish/tasks/${taskId}/toggle`, {
+                    method: 'POST',
+                    body: JSON.stringify({ enabled })
+                });
+                showToast(enabled ? '任务已启用' : '任务已停用', 'success');
+                loadReplenishTasks();
+            } catch (error) {
+                showToast('操作失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 删除任务
+        async function deleteReplenishTask(taskId) {
+            if (!confirm('确定要删除这个补机任务吗？')) return;
+            
+            try {
+                await apiCall(`/api/auto-replenish/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+                showToast('任务已删除', 'success');
+                loadReplenishTasks();
+            } catch (error) {
+                showToast('删除失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 开机模板模态框
+        function openTemplatesModal() {
+            document.getElementById('templates-modal').classList.remove('hidden');
+            loadTemplates();
+        }
+        
+        function closeTemplatesModal() {
+            document.getElementById('templates-modal').classList.add('hidden');
+        }
+        
+        // 加载模板列表
+        async function loadTemplates() {
+            const container = document.getElementById('templates-list');
+            try {
+                const data = await apiCall('/api/templates');
+                const templates = data.data?.templates || [];
+                
+                if (templates.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8" style="color: var(--text-secondary);">
+                            <i class="fas fa-file-alt text-3xl mb-2" style="opacity: 0.5;"></i>
+                            <p class="text-sm">暂无模板</p>
+                            <p class="text-xs mt-1" style="opacity: 0.7;">创建实例时点击"另存为模板"即可保存</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = templates.map(t => `
+                    <div class="p-3 mb-2 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold">${t.name}</span>
+                                <span class="text-xs px-2 py-0.5 rounded ml-2" style="background: var(--bg-tertiary);">${t.provider}</span>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTemplate(${t.id})" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="text-xs mt-2" style="color: var(--text-secondary);">
+                            <span>${t.region}</span> · <span>${t.plan}</span> · <span>${t.image}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载模板失败:', error);
+                container.innerHTML = '<div class="text-center py-4 text-danger">加载失败</div>';
+            }
+        }
+        
+        // 删除模板
+        async function deleteTemplate(templateId) {
+            if (!confirm('确定要删除这个模板吗？')) return;
+            
+            try {
+                await apiCall(`/api/templates/${templateId}`, { method: 'DELETE' });
+                showToast('模板已删除', 'success');
+                loadTemplates();
+            } catch (error) {
+                showToast('删除失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 补机日志模态框
+        function openReplenishLogsModal() {
+            document.getElementById('replenish-logs-modal').classList.remove('hidden');
+            loadReplenishLogs();
+        }
+        
+        function closeReplenishLogsModal() {
+            document.getElementById('replenish-logs-modal').classList.add('hidden');
+        }
+        
+        async function loadReplenishLogs() {
+            const container = document.getElementById('replenish-logs-list');
+            try {
+                const data = await apiCall('/api/auto-replenish/logs');
+                const logs = data.data?.logs || [];
+                
+                if (logs.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8" style="color: var(--text-secondary);">
+                            <i class="fas fa-history text-3xl mb-2" style="opacity: 0.5;"></i>
+                            <p class="text-sm">暂无补机记录</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = logs.map(log => `
+                    <div class="p-3 mb-2 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="status-badge ${log.status === 'success' ? 'status-active' : 'status-error'} text-xs">
+                                ${log.status === 'success' ? '成功' : '失败'}
+                            </span>
+                            <span class="text-xs" style="color: var(--text-secondary);">${log.created_at}</span>
+                        </div>
+                        <div class="text-sm">${log.new_instance_name || '未知实例'}</div>
+                        ${log.error_message ? `<div class="text-xs text-danger mt-1">${log.error_message}</div>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载日志失败:', error);
+            }
+        }
 
         // 工具函数
         function showMessage(message, type = 'info') {
@@ -5200,19 +5951,22 @@
         }
 
         // 添加 API 密钥
-        async function addApiKey(name, provider, key) {
+        async function addApiKey(name, provider, key, keyGroup) {
             try {
                 const response = await apiCall('/api/apikeys', {
                     method: 'POST',
-                    body: JSON.stringify({ name, provider, key })
+                    body: JSON.stringify({ name, provider, key, key_group: keyGroup || '自用' })
                 });
                 
                 showMessage('API 密钥添加成功！', 'success');
                 document.getElementById('add-api-key-modal').classList.add('hidden');
                 document.getElementById('add-api-key-form').reset();
+                // 重置分组为默认值
+                document.getElementById('api-key-group').value = '自用';
                 
-                // 重新加载密钥列表
+                // 重新加载密钥列表和分组
                 await loadApiKeys();
+                await loadCachedKeyGroups();
                 
                 // 如果返回了新密钥的ID，自动选择它
                 if (response && response.id) {
@@ -7763,6 +8517,9 @@
             // 页面初始化 - 检查登录状态
             checkAuthStatus();
             
+            // 加载分组列表
+            loadCachedKeyGroups();
+            
             // 登录表单
             document.getElementById('login-form').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -7925,6 +8682,18 @@
                 document.getElementById('api-keys-modal').classList.add('hidden');
             });
 
+            // 自动补机菜单
+            document.getElementById('auto-replenish-btn').addEventListener('click', () => {
+                document.getElementById('user-menu-dropdown').classList.remove('show');
+                openAutoReplenishModal();
+            });
+
+            // 开机模板菜单
+            document.getElementById('templates-btn').addEventListener('click', () => {
+                document.getElementById('user-menu-dropdown').classList.remove('show');
+                openTemplatesModal();
+            });
+
             // 菜单中的修改密码
             document.getElementById('menu-change-password-btn').addEventListener('click', () => {
                 document.getElementById('change-password-modal').classList.remove('hidden');
@@ -8064,6 +8833,7 @@
                 e.preventDefault();
                 const name = document.getElementById('api-key-name').value;
                 const provider = document.getElementById('api-key-provider').value;
+                const keyGroup = document.getElementById('api-key-group').value.trim() || '自用';
                 
                 let key;
                 
@@ -8098,7 +8868,7 @@
                     key = document.getElementById('api-key-value').value;
                 }
                 
-                addApiKey(name, provider, key);
+                addApiKey(name, provider, key, keyGroup);
             });
 
             // 实例相关

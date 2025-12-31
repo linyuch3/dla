@@ -63,3 +63,6 @@ export async function onRequest(context: RequestContext) {
         return createErrorResponse('获取地区失败', 500, 'GET_REGIONS_FAILED');
     }
 }
+
+// 导出GET方法
+export const onRequestGet = onRequest;

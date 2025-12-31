@@ -1,0 +1,29 @@
+// routes/index.ts - 路由设置
+import { Express, Request, Response } from 'express';
+import { loadApiRoutes } from './api-loader';
+import { requireAuth } from '../middleware/auth';
+
+export function setupRoutes(app: Express) {
+  // 健康检查（无需认证）
+  app.get('/api/health', (req: Request, res: Response) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  });
+
+  // 加载所有API路由
+  loadApiRoutes(app);
+  
+  // 前端路由回退（SPA支持）
+  app.get('*', (req: Request, res: Response) => {
+    // 如果是API请求但未匹配，返回404
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    
+    // 其他请求返回index.html
+    res.sendFile('index.html', { root: '.' });
+  });
+}

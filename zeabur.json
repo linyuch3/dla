@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.zeabur.app/template.json",
+  "name": "CloudPanel",
+  "description": "云服务器管理面板 - 支持 DigitalOcean、Linode、Azure 的统一管理",
+  "icon": "https://raw.githubusercontent.com/7d653179z/dla/main/icon.png",
+  "tags": ["cloud", "server", "management", "docker"],
+  "readme": "README.md",
+  "services": [
+    {
+      "name": "cloudpanel",
+      "template": "PREBUILT",
+      "source": {
+        "image": "ghcr.io/7d653179z/dla:latest"
+      },
+      "ports": [3000],
+      "volumes": [
+        {
+          "id": "data",
+          "dir": "/app/data"
+        }
+      ],
+      "env": {
+        "ENCRYPTION_KEY": {
+          "default": "",
+          "expose": false,
+          "required": true,
+          "description": "数据加密密钥 (32字符)"
+        },
+        "JWT_SECRET": {
+          "default": "",
+          "expose": false,
+          "required": true,
+          "description": "JWT 签名密钥"
+        },
+        "ADMIN_USERNAME": {
+          "default": "admin",
+          "expose": false,
+          "required": false,
+          "description": "管理员用户名"
+        },
+        "ADMIN_PASSWORD": {
+          "default": "",
+          "expose": false,
+          "required": false,
+          "description": "管理员密码"
+        }
+      },
+      "domainKey": "ZEABUR_WEB_URL"
+    }
+  ]
+}

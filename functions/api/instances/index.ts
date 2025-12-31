@@ -98,19 +98,26 @@ export async function onRequestGet(context: RequestContext): Promise<Response> {
     const authResult = await authMiddleware(context);
     if (authResult) return authResult;
 
-    const { env } = context;
+    const { env, request } = context;
     const session = context.session!;
 
+    // 获取 URL 参数中的 api_key_id（用于补机任务等场景）
+    const url = new URL(request.url);
+    const paramApiKeyId = url.searchParams.get('api_key_id');
+    
+    // 优先使用 URL 参数中的密钥ID，否则使用前端选中的密钥
+    const targetApiKeyId = paramApiKeyId ? parseInt(paramApiKeyId) : session.selectedApiKeyId;
+
     // 检查是否有选中的 API 密钥
-    if (!session.selectedApiKeyId) {
+    if (!targetApiKeyId) {
       return createErrorResponse('请先选择一个 API 密钥', 400, 'NO_SELECTED_API_KEY');
     }
 
     // 获取数据库服务
     const db = createDatabaseService(env);
 
-    // 获取用户选中的 API 密钥
-    const apiKey = await db.getApiKeyById(session.selectedApiKeyId);
+    // 获取指定的 API 密钥
+    const apiKey = await db.getApiKeyById(targetApiKeyId);
     if (!apiKey || apiKey.user_id !== session.userId) {
       return createErrorResponse('API 密钥不存在或无权限访问', 403, 'INVALID_API_KEY');
     }

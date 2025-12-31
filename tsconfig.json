@@ -3,26 +3,25 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "node",
-    "lib": ["ES2022", "WebWorker"],
+    "lib": ["ES2022", "DOM"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
     "declarationMap": false,
-    "sourceMap": false,
+    "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./functions",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmitOnError": false,
-    "noEmit": true,
-    "types": ["@cloudflare/workers-types", "node"]
+    "noEmit": false,
+    "types": ["node"]
   },
   "include": [
-    "functions/**/*",
-    "migrations/**/*"
+    "functions/**/*"
   ],
   "exclude": [
     "node_modules",

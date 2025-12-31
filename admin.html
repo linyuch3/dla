@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudPanel - 管理员面板</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-500: #3b82f6;
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --success-500: #10b981;
+            --success-600: #059669;
+            --warning-500: #f59e0b;
+            --error-500: #ef4444;
+            --error-600: #dc2626;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border-color: #e2e8f0;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .btn-danger {
+            background: var(--error-500);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--error-600);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .stat-card .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card .icon.blue { background: #dbeafe; color: #2563eb; }
+        .stat-card .icon.green { background: #d1fae5; color: #059669; }
+        .stat-card .icon.yellow { background: #fef3c7; color: #d97706; }
+        .stat-card .icon.red { background: #fee2e2; color: #dc2626; }
+        .stat-card .icon.purple { background: #ede9fe; color: #7c3aed; }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .stat-card .label {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* User List */
+        .user-list {
+            list-style: none;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-item:hover {
+            background: var(--gray-50);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .user-meta {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .user-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .user-badge.admin {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .user-badge.user {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* API Keys Test */
+        .key-result {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 0.5rem;
+            background: var(--gray-50);
+        }
+
+        .key-result.valid {
+            background: #d1fae5;
+        }
+
+        .key-result.invalid {
+            background: #fee2e2;
+        }
+
+        .key-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .key-provider {
+            font-size: 1.25rem;
+        }
+
+        .key-name {
+            font-weight: 600;
+        }
+
+        .key-owner {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .key-status {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .key-status.valid {
+            color: var(--success-600);
+        }
+
+        .key-status.invalid {
+            color: var(--error-600);
+        }
+
+        /* Scheduler Config */
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .config-label {
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .config-value {
+            font-family: monospace;
+            background: var(--gray-100);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-lg);
+            color: var(--gray-700);
+        }
+
+        .config-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.active {
+            background: var(--success-500);
+        }
+
+        .status-dot.inactive {
+            background: var(--gray-300);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--gray-500);
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray-500);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Provider Stats */
+        .provider-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .provider-stat {
+            text-align: center;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+        }
+
+        .provider-stat .count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .provider-stat .name {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+
+        /* Login Section */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .login-box h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-900);
+        }
+
+        .login-box p {
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+        }
+
+        .login-box .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Full width card */
+        .card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--success-500);
+        }
+
+        .toast.error {
+            background: var(--error-500);
+        }
+
+        .toast.info {
+            background: var(--primary-500);
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="login-section" class="login-container">
+        <div class="login-box">
+            <i class="fas fa-shield-alt" style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;"></i>
+            <h1>管理员面板</h1>
+            <p>请使用管理员账户登录</p>
+            <div id="login-error" class="error hidden"></div>
+            <div class="loading" id="login-loading">
+                <i class="fas fa-spinner"></i>
+                正在验证身份...
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="container hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <h1><i class="fas fa-cog"></i> 管理员面板</h1>
+                <span class="badge">Admin</span>
+            </div>
+            <div class="header-actions">
+                <span id="admin-username" style="color: var(--gray-600);">
+                    <i class="fas fa-user"></i> <span id="username-display">管理员</span>
+                </span>
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> 返回首页
+                </a>
+                <button class="btn btn-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 登出
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon blue"><i class="fas fa-users"></i></div>
+                <div class="value" id="stat-users">-</div>
+                <div class="label">总用户数</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon green"><i class="fas fa-key"></i></div>
+                <div class="value" id="stat-keys">-</div>
+                <div class="label">API 密钥</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon yellow"><i class="fas fa-check-circle"></i></div>
+                <div class="value" id="stat-healthy">-</div>
+                <div class="label">健康密钥</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon red"><i class="fas fa-times-circle"></i></div>
+                <div class="value" id="stat-unhealthy">-</div>
+                <div class="label">失效密钥</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon purple"><i class="fab fa-telegram"></i></div>
+                <div class="value" id="stat-telegram">-</div>
+                <div class="label">Telegram 用户</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- User Management -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-users"></i> 用户管理</h2>
+                    <button class="btn btn-secondary" onclick="loadUsers()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="card-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+                    <ul class="user-list" id="user-list">
+                        <li class="loading"><i class="fas fa-spinner"></i> 加载中...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Scheduler Config -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-clock"></i> 定时任务配置</h2>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="scheduler-config">
+                        <div class="loading"><i class="fas fa-spinner"></i> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Keys Test -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2><i class="fas fa-vial"></i> API 密钥测试</h2>
+                    <button class="btn btn-primary" onclick="testAllKeys()" id="test-keys-btn">
+                        <i class="fas fa-play"></i> 测试所有密钥
+                    </button>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    <div id="keys-test-result">
+                        <div class="empty-state">
+                            <i class="fas fa-vial"></i>
+                            <p>点击"测试所有密钥"开始检测</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Stats -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2><i class="fas fa-cloud"></i> 云服务商分布</h2>
+                </div>
+                <div class="card-body">
+                    <div class="provider-stats" id="provider-stats">
+                        <div class="loading"><i class="fas fa-spinner"></i> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // API 调用封装
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(endpoint, {
+                ...options,
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || data.message || '请求失败');
+            }
+            
+            return data;
+        }
+
+        // 显示 Toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 检查管理员权限
+        async function checkAdminAuth() {
+            try {
+                const data = await apiCall('/api/auth/check');
+                
+                if (data.success && data.data.user && data.data.user.isAdmin) {
+                    document.getElementById('login-section').classList.add('hidden');
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                    document.getElementById('username-display').textContent = data.data.user.username;
+                    
+                    // 加载数据
+                    loadStats();
+                    loadUsers();
+                    loadSchedulerConfig();
+                } else {
+                    showLoginError('您没有管理员权限，请使用管理员账户登录');
+                    setTimeout(() => {
+                        window.location.href = '/?redirect=/admin';
+                    }, 2000);
+                }
+            } catch (error) {
+                showLoginError('请先登录');
+                setTimeout(() => {
+                    window.location.href = '/?redirect=/admin';
+                }, 2000);
+            }
+        }
+
+        function showLoginError(message) {
+            document.getElementById('login-loading').classList.add('hidden');
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const data = await apiCall('/api/admin/stats');
+                const stats = data.data;
+                
+                document.getElementById('stat-users').textContent = stats.users.total;
+                document.getElementById('stat-keys').textContent = stats.apiKeys.total;
+                document.getElementById('stat-healthy').textContent = stats.apiKeys.healthy;
+                document.getElementById('stat-unhealthy').textContent = stats.apiKeys.unhealthy;
+                document.getElementById('stat-telegram').textContent = stats.users.telegramEnabled;
+                
+                // 更新服务商统计
+                renderProviderStats(stats.providers);
+            } catch (error) {
+                showToast('加载统计失败: ' + error.message, 'error');
+            }
+        }
+
+        // 渲染服务商统计
+        function renderProviderStats(providers) {
+            const container = document.getElementById('provider-stats');
+            
+            if (!providers || Object.keys(providers).length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-cloud"></i><p>暂无数据</p></div>';
+                return;
+            }
+
+            const providerIcons = {
+                'digitalocean': '🌊',
+                'linode': '🟢',
+                'azure': '☁️',
+                'aws': '📦',
+                'vultr': '🔥',
+                'hetzner': '🏢'
+            };
+
+            container.innerHTML = Object.entries(providers).map(([name, count]) => `
+                <div class="provider-stat">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">${providerIcons[name] || '🔑'}</div>
+                    <div class="count">${count}</div>
+                    <div class="name">${name}</div>
+                </div>
+            `).join('');
+        }
+
+        // 加载用户列表
+        async function loadUsers() {
+            const container = document.getElementById('user-list');
+            container.innerHTML = '<li class="loading"><i class="fas fa-spinner"></i> 加载中...</li>';
+            
+            try {
+                const data = await apiCall('/api/admin/users');
+                const users = data.data.users;
+                
+                if (users.length === 0) {
+                    container.innerHTML = '<li class="empty-state"><i class="fas fa-users"></i><p>暂无用户</p></li>';
+                    return;
+                }
+
+                container.innerHTML = users.map(user => `
+                    <li class="user-item">
+                        <div class="user-info">
+                            <div class="user-avatar">${user.username.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <div class="user-name">${user.username}</div>
+                                <div class="user-meta">注册于 ${new Date(user.created_at).toLocaleDateString('zh-CN')}</div>
+                            </div>
+                        </div>
+                        <span class="user-badge ${user.is_admin ? 'admin' : 'user'}">
+                            ${user.is_admin ? '管理员' : '用户'}
+                        </span>
+                    </li>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = `<li class="empty-state" style="color: var(--error-500);"><i class="fas fa-exclamation-circle"></i><p>${error.message}</p></li>`;
+            }
+        }
+
+        // 加载定时任务配置
+        async function loadSchedulerConfig() {
+            const container = document.getElementById('scheduler-config');
+            
+            try {
+                const data = await apiCall('/api/admin/scheduler');
+                const config = data.data;
+                
+                container.innerHTML = `
+                    <div class="config-item">
+                        <span class="config-label">检查时间 (UTC)</span>
+                        <span class="config-value">${config.checkTime}</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-label">Telegram 配置</span>
+                        <span class="config-status">
+                            <span class="status-dot ${config.telegramConfigured ? 'active' : 'inactive'}"></span>
+                            ${config.telegramConfigured ? '已配置' : '未配置'}
+                        </span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-label">定时任务状态</span>
+                        <span class="config-status">
+                            <span class="status-dot ${config.enabled ? 'active' : 'inactive'}"></span>
+                            ${config.enabled ? '运行中' : '已禁用'}
+                        </span>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `<div class="config-item" style="color: var(--error-500);">${error.message}</div>`;
+            }
+        }
+
+        // 测试所有密钥
+        async function testAllKeys() {
+            const btn = document.getElementById('test-keys-btn');
+            const container = document.getElementById('keys-test-result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+            container.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> 正在测试所有密钥，请稍候...</div>';
+            
+            try {
+                const data = await apiCall('/api/admin/test-all-keys', { method: 'POST' });
+                const result = data.data;
+                
+                if (result.results.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-key"></i><p>没有密钥需要测试</p></div>';
+                    return;
+                }
+
+                const providerIcons = {
+                    'digitalocean': '🌊',
+                    'linode': '🟢',
+                    'azure': '☁️',
+                    'aws': '📦',
+                    'vultr': '🔥',
+                    'hetzner': '🏢'
+                };
+
+                container.innerHTML = `
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: var(--gray-50); border-radius: var(--radius-lg);">
+                        <strong>测试结果：</strong> 
+                        共 ${result.total} 个密钥，
+                        <span style="color: var(--success-600);">✅ ${result.valid} 有效</span>，
+                        <span style="color: var(--error-600);">❌ ${result.invalid} 失效</span>
+                    </div>
+                    ${result.results.map(key => `
+                        <div class="key-result ${key.success ? 'valid' : 'invalid'}">
+                            <div class="key-info">
+                                <span class="key-provider">${providerIcons[key.provider] || '🔑'}</span>
+                                <div>
+                                    <div class="key-name">${key.name}</div>
+                                    <div class="key-owner">用户: ${key.username} | ${key.provider}</div>
+                                </div>
+                            </div>
+                            <div class="key-status ${key.success ? 'valid' : 'invalid'}">
+                                ${key.success 
+                                    ? `<i class="fas fa-check-circle"></i> 有效${key.balance !== undefined ? ` ($${key.balance.toFixed(2)})` : ''}`
+                                    : `<i class="fas fa-times-circle"></i> ${key.error || '失效'}`
+                                }
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+                
+                showToast(`测试完成: ${result.valid} 有效, ${result.invalid} 失效`, result.invalid > 0 ? 'error' : 'success');
+                
+                // 刷新统计
+                loadStats();
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state" style="color: var(--error-500);"><i class="fas fa-exclamation-circle"></i><p>${error.message}</p></div>`;
+                showToast('测试失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> 测试所有密钥';
+            }
+        }
+
+        // 登出
+        async function logout() {
+            try {
+                await apiCall('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                showToast('登出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+        });
+    </script>
+</body>
+</html>
