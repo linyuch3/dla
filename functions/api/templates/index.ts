@@ -7,8 +7,11 @@ interface CreateTemplateRequest {
   name: string;
   provider: 'digitalocean' | 'linode' | 'azure';
   region: string;
+  region_display?: string;
   plan: string;
+  plan_display?: string;
   image: string;
+  image_display?: string;
   disk_size?: number;
   enable_ipv6?: boolean;
   root_password?: string;
@@ -49,8 +52,11 @@ function validateCreateTemplateRequest(data: any): CreateTemplateRequest {
     name: name.trim(),
     provider,
     region: region.trim(),
+    region_display: typeof data.region_display === 'string' ? data.region_display.trim() : undefined,
     plan: plan.trim(),
+    plan_display: typeof data.plan_display === 'string' ? data.plan_display.trim() : undefined,
     image: image.trim(),
+    image_display: typeof data.image_display === 'string' ? data.image_display.trim() : undefined,
     disk_size: typeof data.disk_size === 'number' ? data.disk_size : undefined,
     enable_ipv6: typeof data.enable_ipv6 === 'boolean' ? data.enable_ipv6 : false,
     root_password: typeof data.root_password === 'string' ? data.root_password : undefined,
@@ -114,8 +120,11 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
       name: data.name,
       provider: data.provider,
       region: data.region,
+      region_display: data.region_display,
       plan: data.plan,
+      plan_display: data.plan_display,
       image: data.image,
+      image_display: data.image_display,
       disk_size: data.disk_size,
       enable_ipv6: data.enable_ipv6 || false,
       root_password: data.root_password,

@@ -9,7 +9,7 @@ import { setupRoutes } from './routes';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { corsMiddleware } from './middleware/cors';
 import { sessionMiddleware } from './middleware/session';
-import { scheduleHealthCheck } from './scheduler';
+import { scheduleHealthCheck, scheduleApiKeyTest } from './scheduler';
 import { getDatabase } from './shared/db-adapter';
 import { getKV } from './shared/kv-adapter';
 import { Env } from './shared/types';
@@ -86,6 +86,8 @@ async function startServer() {
     if (config.telegram.botToken && config.telegram.adminId) {
       console.log('正在启动定时健康检查任务...');
       scheduleHealthCheck();
+      console.log('正在启动定时API密钥测试任务...');
+      scheduleApiKeyTest();
       console.log('定时任务已启动');
     } else {
       console.log('Telegram未配置，跳过定时任务');

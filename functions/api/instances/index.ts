@@ -3,6 +3,7 @@ import { RequestContext, ValidationError, CONSTANTS } from '../../shared/types';
 import { createDatabaseService } from '../../shared/db';
 import { createCloudProviderFromEncryptedKey, CloudInstanceManager, CreateInstanceConfig } from '../../shared/cloud-providers';
 import { authMiddleware, createErrorResponse, createSuccessResponse, validateRequestData } from '../../shared/auth';
+import { sendTelegramNotification } from '../../shared/telegram-notify';
 
 // 根据云服务商生成实例名称
 function generateInstanceName(provider: string): string {
@@ -205,6 +206,16 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
 
     // 创建实例
     const newInstance = await instanceManager.createInstance(createConfig);
+
+    // 发送 Telegram 通知
+    sendTelegramNotification(env, session.userId, {
+      type: 'instance_create',
+      instanceName: newInstance.name,
+      instanceId: newInstance.id,
+      provider: apiKey.provider,
+      region: createConfig.region,
+      ip: newInstance.ipv4 || newInstance.ipv6 || newInstance.ip_address
+    }).catch(err => console.error('发送创建实例通知失败:', err));
 
     return createSuccessResponse({
       instance: newInstance,

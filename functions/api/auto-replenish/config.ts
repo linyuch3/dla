@@ -10,7 +10,6 @@ interface UpdateConfigRequest {
   monitored_api_keys?: string;
   instance_key_mapping?: string;
   template_id?: number | null;
-  key_group?: 'personal' | 'rental';
   check_interval?: number;
   notify_telegram?: boolean;
 }
@@ -64,13 +63,6 @@ function validateUpdateConfigRequest(data: any): UpdateConfigRequest {
     config.template_id = data.template_id;
   }
 
-  if (data.key_group !== undefined) {
-    if (!['personal', 'rental'].includes(data.key_group)) {
-      throw new ValidationError('key_group 必须为 personal 或 rental', 'key_group');
-    }
-    config.key_group = data.key_group;
-  }
-
   if (data.check_interval !== undefined) {
     if (typeof data.check_interval !== 'number' || data.check_interval < 60) {
       throw new ValidationError('check_interval 必须为大于等于60的数字', 'check_interval');
@@ -110,7 +102,6 @@ export async function onRequestGet(context: RequestContext): Promise<Response> {
         monitored_api_keys: '[]',
         instance_key_mapping: '[]',
         template_id: null,
-        key_group: 'personal',
         check_interval: 300,
         notify_telegram: true,
         created_at: '',
@@ -148,7 +139,6 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
       monitored_api_keys: updates.monitored_api_keys ?? currentConfig?.monitored_api_keys ?? '[]',
       instance_key_mapping: updates.instance_key_mapping ?? currentConfig?.instance_key_mapping ?? '[]',
       template_id: updates.template_id !== undefined ? updates.template_id : (currentConfig?.template_id ?? null),
-      key_group: updates.key_group ?? currentConfig?.key_group ?? 'personal' as const,
       check_interval: updates.check_interval ?? currentConfig?.check_interval ?? 300,
       notify_telegram: updates.notify_telegram ?? currentConfig?.notify_telegram ?? true,
     };

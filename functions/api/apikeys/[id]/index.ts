@@ -165,23 +165,11 @@ export async function onRequestPut(context: RequestContext): Promise<Response> {
       return createErrorResponse('无权限访问此API密钥', 403, 'ACCESS_DENIED');
     }
 
-    // 获取请求体
-    const body = await request.json() as { key_group?: string };
-
-    // 更新分组（允许任意自定义标签）
-    if (body.key_group !== undefined) {
-      const groupName = body.key_group.trim();
-      if (groupName.length > 50) {
-        return createErrorResponse('分组名称不能超过50个字符', 400, 'INVALID_KEY_GROUP');
-      }
-      await db.updateApiKeyGroup(keyId, groupName);
-    }
-
+    // PUT端点目前没有可更新的字段，返回成功
     return createSuccessResponse({
       id: keyId,
-      key_group: body.key_group || apiKey.key_group,
-      message: 'API密钥已更新'
-    }, 'API密钥已更新');
+      message: 'API密钥无需更新'
+    }, 'API密钥无需更新');
 
   } catch (error) {
     console.error('更新API密钥失败:', error);

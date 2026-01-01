@@ -4,6 +4,7 @@ import { createDatabaseService } from '../../shared/db';
 import { createCloudProviderFromEncryptedKey, CloudInstanceManager, CreateInstanceConfig } from '../../shared/cloud-providers';
 import { authMiddleware, createErrorResponse, createSuccessResponse, validateRequestData } from '../../shared/auth';
 import { CryptoService } from '../../shared/crypto';
+import { sendTelegramNotification } from '../../shared/telegram-notify';
 
 interface TriggerReplenishRequest {
   template_id: number;
@@ -70,10 +71,6 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
       return createErrorResponse('无权使用此模板', 403, 'ACCESS_DENIED');
     }
 
-    // 获取自动补机配置
-    const replenishConfig = await db.getAutoReplenishConfig(session!.userId);
-    const keyGroup = replenishConfig?.key_group || 'personal';
-
     // 获取可用的API密钥
     let apiKey;
     if (data.api_key_id) {
@@ -82,10 +79,13 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
         return createErrorResponse('API密钥不存在或无权访问', 403, 'INVALID_API_KEY');
       }
     } else {
-      // 自动选择健康的API密钥
-      const healthyKeys = await db.getHealthyApiKeysByGroup(session!.userId, keyGroup, template.provider);
+      // 自动选择健康的API密钥（按服务商匹配）
+      const allKeys = await db.getApiKeysByUserId(session!.userId);
+      const healthyKeys = allKeys.filter(k => 
+        k.health_status === 'healthy' && k.provider === template.provider
+      );
       if (healthyKeys.length === 0) {
-        return createErrorResponse(`没有可用的${keyGroup === 'personal' ? '自用' : '租机'}分组健康API密钥`, 400, 'NO_HEALTHY_API_KEY');
+        return createErrorResponse('没有可用的健康API密钥', 400, 'NO_HEALTHY_API_KEY');
       }
       apiKey = healthyKeys[0];
     }
@@ -144,18 +144,16 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
         }),
       });
 
-      // 发送 Telegram 通知（如果启用）
-      if (replenishConfig?.notify_telegram) {
-        await sendTelegramNotification(env, session!.userId, db, {
-          success: true,
-          instanceName: newInstance.name,
-          ipv4: newInstance.ip_address || '等待分配',
-          ipv6: newInstance.ipv6_address || '无',
-          rootPassword: rootPassword,
-          provider: template.provider,
-          region: template.region,
-        });
-      }
+      // 发送自动补机 Telegram 通知
+      sendTelegramNotification(env, session.userId, {
+        type: 'auto_replenish',
+        instanceName: newInstance.name,
+        instanceId: newInstance.id,
+        provider: template.provider,
+        region: template.region,
+        ip: newInstance.ip_address || newInstance.ipv4,
+        details: { taskName: '手动触发' }
+      }).catch(err => console.error('发送自动补机通知失败:', err));
 
       return createSuccessResponse({
         log_id: logId,

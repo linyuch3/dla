@@ -37,6 +37,7 @@ export interface CreateInstanceConfig {
   enableIPv6?: boolean; // 是否启用IPv6 (仅Azure)
   tags?: string[];
   user_data?: string;
+  root_password?: string; // 显式指定的root密码
 }
 
 /**
@@ -207,6 +208,14 @@ export class DigitalOceanProvider implements CloudProviderAPI {
   }
 
   async createInstance(config: CreateInstanceConfig): Promise<CloudInstance> {
+    console.log('🔧 [DigitalOcean] 创建实例配置:', {
+      name: config.name,
+      region: config.region,
+      image: config.image,
+      user_data_length: config.user_data?.length || 0,
+      user_data_preview: config.user_data?.substring(0, 200) || 'none'
+    });
+    
     const payload = {
       name: config.name,
       region: config.region,
@@ -993,6 +1002,30 @@ export class LinodeProvider implements CloudProviderAPI {
   }
 
   async createInstance(config: CreateInstanceConfig): Promise<CloudInstance> {
+    console.log('🔧 [Linode] 创建实例配置:', {
+      name: config.name,
+      region: config.region,
+      image: config.image,
+      user_data_length: config.user_data?.length || 0,
+      user_data_preview: config.user_data?.substring(0, 200) || 'none',
+      has_root_password: !!config.root_password
+    });
+    
+    // Linode要求必须提供root_pass
+    // 优先级：1) 显式传入的root_password 2) user_data中提取 3) 随机生成
+    let rootPassword = config.root_password;
+    if (!rootPassword) {
+      rootPassword = this.extractRootPassword(config.user_data);
+    }
+    if (!rootPassword) {
+      // 生成16位随机密码，包含大小写字母、数字和特殊字符
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+      rootPassword = Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      console.log('⚠️ [Linode] 未指定密码且未从user_data中提取到密码，已生成随机root密码');
+    } else {
+      console.log('✅ [Linode] 使用指定的root密码');
+    }
+    
     const payload: any = {
       label: config.name,
       region: config.region,
@@ -1000,8 +1033,58 @@ export class LinodeProvider implements CloudProviderAPI {
       image: config.image,
       authorized_keys: config.ssh_keys || [],
       tags: config.tags || [],
-      root_pass: this.extractRootPassword(config.user_data)
+      root_pass: rootPassword
     };
+    
+    // 处理自定义脚本：Linode不支持user_data，需要使用metadata或其他方式
+    // 这里我们将脚本嵌入到booted=true后的配置中
+    // 注意：Linode的user_data功能有限，建议使用StackScripts
+    if (config.user_data && config.user_data.trim()) {
+      // 创建一个临时的StackScript来执行用户脚本
+      try {
+        console.log('📝 [Linode] 准备创建StackScript, 脚本长度:', config.user_data.length);
+        
+        // Linode StackScript不支持某些特殊字符（如中文），需要进行处理
+        // 将中文注释替换为英文或移除
+        let sanitizedScript = config.user_data
+          .replace(/# CloudPanel 自动配置脚本/g, '# CloudPanel Auto-Config Script')
+          .replace(/开始执行CloudPanel自动配置脚本/g, 'Starting CloudPanel auto-config script')
+          .replace(/设置root密码/g, 'Setting root password')
+          .replace(/启用SSH root登录/g, 'Enabling SSH root login')
+          .replace(/系统初始化配置完成/g, 'System initialization completed')
+          .replace(/用户自定义脚本/g, 'User Custom Script')
+          .replace(/开始执行用户自定义脚本/g, 'Starting user custom script')
+          .replace(/用户自定义脚本执行完成/g, 'User custom script completed')
+          .replace(/CloudPanel自动配置脚本执行完成/g, 'CloudPanel auto-config script completed')
+          .replace(/脚本执行日志已记录到/g, 'Script execution log saved to')
+          .replace(/生成时间:/g, 'Generated at:')
+          .replace(/[\u4e00-\u9fa5]/g, ''); // 移除剩余中文字符
+        
+        const stackScriptPayload = {
+          label: `auto-script-${Date.now()}`,
+          images: [config.image], // 使用完整的镜像ID
+          script: `#!/bin/bash\n${sanitizedScript}`,
+          is_public: false,
+          description: 'Auto-generated script for instance creation'
+        };
+        
+        console.log('📤 [Linode] 发送StackScript请求:', {
+          label: stackScriptPayload.label,
+          image: config.image,
+          scriptLength: stackScriptPayload.script.length
+        });
+        
+        const stackScriptData = await this.makeRequest('/linode/stackscripts', {
+          method: 'POST',
+          body: JSON.stringify(stackScriptPayload)
+        });
+        
+        console.log('✅ [Linode] StackScript创建成功, ID:', stackScriptData.id);
+        payload.stackscript_id = stackScriptData.id;
+      } catch (error) {
+        console.error('❌ [Linode] 创建StackScript失败，将忽略自定义脚本:', error);
+      }
+    }
     
     // 如果启用IPv6，配置网络接口以确保IPv6支持
     if (config.enableIPv6) {

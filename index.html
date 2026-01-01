@@ -711,47 +711,24 @@
             border-bottom: none;
         }
 
-        /* 密钥表格列宽优化 - 6列 */
+        /* 密钥表格列宽优化 - 5列 */
         .api-keys-table th:nth-child(1), .api-keys-table td:nth-child(1) { 
-            width: 22%; /* 名称列 */
+            width: 25%; /* 名称列 */
         }
         .api-keys-table th:nth-child(2), .api-keys-table td:nth-child(2) { 
-            width: 10%; /* 分组列 */
+            width: 15%; /* 状态列 */
         }
         .api-keys-table th:nth-child(3), .api-keys-table td:nth-child(3) { 
-            width: 13%; /* 状态列 */
+            width: 20%; /* 添加时间列 */
         }
         .api-keys-table th:nth-child(4), .api-keys-table td:nth-child(4) { 
-            width: 18%; /* 添加时间列 */
+            width: 15%; /* 存活时间列 */
         }
         .api-keys-table th:nth-child(5), .api-keys-table td:nth-child(5) { 
-            width: 12%; /* 存活时间列 */
-        }
-        .api-keys-table th:nth-child(6), .api-keys-table td:nth-child(6) { 
             width: 25%; /* 操作列 */
         }
 
-        /* 分组标签样式 */
-        .key-group-tag {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-        .key-group-tag.self-use {
-            background: var(--primary-100);
-            color: var(--primary-700);
-        }
-        .key-group-tag.rental {
-            background: var(--success-50);
-            color: var(--success-600);
-        }
-        .key-group-tag.custom {
-            background: var(--purple-50);
-            color: var(--purple-600);
-        }
+
 
         .api-key-name {
             font-weight: 600;
@@ -2412,6 +2389,18 @@
             font-size: 0.75rem;
             margin-top: var(--space-1);
         }
+        
+        /* 表单输入框小号样式 */
+        .form-input-sm {
+            padding: 6px 10px !important;
+            font-size: 0.8125rem !important;
+            height: 32px;
+        }
+        
+        select.form-input-sm {
+            height: 32px;
+            padding: 4px 8px !important;
+        }
 
         /* API密钥添加弹窗样式优化 */
         #add-api-key-modal .modal-content {
@@ -3840,7 +3829,7 @@
                             </div>
                             <div>
                                 <h4 class="font-semibold text-base">Telegram 通知</h4>
-                                <p class="text-xs" style="color: var(--text-secondary);">配置每日API密钥检查通知</p>
+                                <p class="text-xs" style="color: var(--text-secondary);">实例操作、API密钥失效等通知</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -3852,7 +3841,7 @@
                         </div>
                     </div>
                     
-                    <div id="telegram-settings-content" class="hidden">
+                    <div id="telegram-settings-content">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                             <div class="form-group">
                                 <label class="form-label">
@@ -3861,9 +3850,14 @@
                                 </label>
                                 <input type="password" id="telegram-bot-token" class="form-input" 
                                        placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxyz"
-                                       title="从@BotFather获取的Bot Token">
+                                       title="从@BotFather获取的Bot Token"
+                                       onblur="validateTelegramToken()">
                                 <div class="form-help">
-                                    通过 <a href="https://t.me/BotFather" target="_blank" style="color: var(--primary-600);">@BotFather</a> 创建Bot获取Token
+                                    通过 <a href="https://t.me/BotFather" target="_blank" style="color: var(--primary-600);">@BotFather</a> 创建Bot获取Token<br>
+                                    <span style="font-size: 0.75rem; opacity: 0.8;">格式: 数字:字母数字，例如 123456789:ABCdefGHI...</span>
+                                </div>
+                                <div id="telegram-token-error" class="form-error hidden" style="color: var(--danger-600); font-size: 0.75rem; margin-top: 4px;">
+                                    <i class="fas fa-exclamation-circle"></i> Token格式错误，请检查是否包含冒号(:)和正确的字符
                                 </div>
                             </div>
                             
@@ -3881,7 +3875,45 @@
                             </div>
                         </div>
                         
-                        <div class="flex gap-2 pt-3" style="border-top: 1px solid var(--border-color);">
+                        <!-- 定时检查配置 -->
+                        <div class="mt-3 p-3 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fas fa-clock text-sm" style="color: var(--primary-600);"></i>
+                                <span class="font-medium text-sm">定时检查设置</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs">
+                                        <i class="fas fa-calendar-check"></i>
+                                        每日健康检查时间
+                                    </label>
+                                    <input type="time" id="telegram-notification-time" class="form-input form-input-sm" 
+                                           value="08:00"
+                                           title="每天发送API密钥健康检查报告的时间（北京时间）">
+                                    <div class="form-help" style="font-size: 0.7rem;">
+                                        北京时间，默认 08:00
+                                    </div>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs">
+                                        <i class="fas fa-sync-alt"></i>
+                                        API密钥自动测试
+                                    </label>
+                                    <select id="telegram-auto-test-interval" class="form-input form-input-sm">
+                                        <option value="0">禁用自动测试</option>
+                                        <option value="3">每3小时</option>
+                                        <option value="6" selected>每6小时</option>
+                                        <option value="12">每12小时</option>
+                                        <option value="24">每24小时</option>
+                                    </select>
+                                    <div class="form-help" style="font-size: 0.7rem;">
+                                        自动测试所有API密钥健康状态
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 pt-3 mt-3" style="border-top: 1px solid var(--border-color);">
                             <button class="btn btn-primary btn-sm" id="save-telegram-settings-btn">
                                 <i class="fas fa-save"></i>
                                 保存设置
@@ -3962,17 +3994,6 @@
                         <option value="linode">Linode</option>
                         <option value="azure">Microsoft Azure</option>
                     </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">分组</label>
-                    <select id="api-key-group" class="form-select">
-                        <option value="自用" selected>自用</option>
-                        <option value="租机">租机</option>
-                    </select>
-                    <div class="form-help">
-                        仅支持“自用”或“租机”分组
-                    </div>
                 </div>
                 
                 <!-- 通用API密钥输入 -->
@@ -4184,15 +4205,16 @@
                     <div class="form-help">机器失效后使用此模板创建新机器</div>
                 </div>
                 
-                <!-- 备用密钥分组 -->
+                <!-- 补机密钥池 -->
                 <div class="form-group mb-3">
                     <label class="form-label">
-                        <i class="fas fa-layer-group"></i>
-                        备用密钥分组
+                        <i class="fas fa-key"></i>
+                        补机密钥池 *
                     </label>
-                    <input type="text" id="task-backup-group" class="form-input" list="existing-groups-list" placeholder="输入或选择分组名称">
-                    <datalist id="existing-groups-list"></datalist>
-                    <div class="form-help">机器失效时从此分组中选择健康密钥进行补机</div>
+                    <div id="task-replenish-apikeys-list" class="checkbox-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px;">
+                        <div class="text-xs text-center py-2" style="color: var(--text-secondary);">正在加载...</div>
+                    </div>
+                    <div class="form-help">机器失效时从这些密钥中选择可用的进行补机</div>
                 </div>
                 
                 <!-- 检查间隔 -->
@@ -4438,6 +4460,21 @@
                         <label class="block text-sm font-medium text-blue-800 api-key-info-label">使用账号 (API Key)</label>
                         <p id="createInstanceApiKeyInfo" class="text-sm font-semibold text-blue-900 mt-1 api-key-info-text">请先选择 Key</p>
                     </div>
+                    
+                    <!-- 模板选择区域 -->
+                    <div class="mb-6">
+                        <label for="instanceTemplateSelect" class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-layer-group"></i> 使用模板快速创建 <span class="text-gray-500">(可选)</span>
+                        </label>
+                        <select id="instanceTemplateSelect" class="select-field" onchange="onInstanceTemplateChange()">
+                            <option value="">不使用模板，手动配置</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-info-circle"></i> 
+                            选择模板将自动填充配置，您也可以手动修改
+                        </p>
+                    </div>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                             <label for="createRegionSelect" class="block text-sm font-medium text-gray-700 mb-1">地区 <span class="text-red-500">*</span><span id="regionLoader" class="loader loader-sm hidden"></span></label>
@@ -4532,6 +4569,116 @@
 
                 </div>
                 
+    <!-- 创建模板模态框 -->
+    <div id="createTemplateModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <button onclick="closeCreateTemplateModal()" class="modal-close-btn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6"><i class="fas fa-layer-group"></i> 创建开机模板</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="templateNameInput" class="block text-sm font-medium text-gray-700 mb-1">
+                        模板名称 <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="templateNameInput" 
+                        class="input-field" 
+                        placeholder="请输入模板名称" 
+                        maxlength="100">
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle"></i> 已智能生成默认名称，您可以修改
+                    </p>
+                </div>
+                
+                <div>
+                    <label for="templateUserScriptInput" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-code"></i> 自定义启动脚本 <span class="text-gray-500">(可选)</span>
+                    </label>
+                    <textarea 
+                        id="templateUserScriptInput" 
+                        class="input-field" 
+                        rows="8" 
+                        placeholder="#!/bin/bash&#10;# 在此输入您的自定义启动脚本&#10;# 此脚本将在系统初始化后执行&#10;# 例如: 安装软件、配置环境等&#10;&#10;# apt update && apt install -y nginx"
+                        style="font-family: var(--font-mono); font-size: 0.875rem; resize: vertical;"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-lightbulb"></i> 
+                        可以在模板中保存自定义脚本，下次使用模板时会自动填充
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeCreateTemplateModal()" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" onclick="submitCreateTemplate()" class="btn btn-success" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fas fa-save"></i> 保存模板
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模板模态框 -->
+    <div id="editTemplateModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <button onclick="closeEditTemplateModal()" class="modal-close-btn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6"><i class="fas fa-edit"></i> 编辑模板</h2>
+            
+            <input type="hidden" id="editTemplateId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-server"></i> 模板配置信息
+                    </label>
+                    <div id="editTemplateInfo" class="p-3 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                        <!-- 配置信息将动态填充 -->
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle"></i> 云服务商、区域、配置等信息不可修改，如需更改请创建新模板
+                    </p>
+                </div>
+                
+                <div>
+                    <label for="editTemplateNameInput" class="block text-sm font-medium text-gray-700 mb-1">
+                        模板名称 <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="editTemplateNameInput" 
+                        class="input-field" 
+                        placeholder="请输入模板名称" 
+                        maxlength="100">
+                </div>
+                
+                <div>
+                    <label for="editTemplateUserScriptInput" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-code"></i> 自定义启动脚本 <span class="text-gray-500">(可选)</span>
+                    </label>
+                    <textarea 
+                        id="editTemplateUserScriptInput" 
+                        class="input-field" 
+                        rows="8" 
+                        placeholder="#!/bin/bash&#10;# 在此输入您的自定义启动脚本&#10;# 此脚本将在系统初始化后执行&#10;# 例如: 安装软件、配置环境等&#10;&#10;# apt update && apt install -y nginx"
+                        style="font-family: var(--font-mono); font-size: 0.875rem; resize: vertical;"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-lightbulb"></i> 
+                        修改后将在下次使用此模板时生效
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeEditTemplateModal()" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" onclick="submitEditTemplate()" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 保存修改
+                </button>
+            </div>
+        </div>
+    </div>
 
 
     <script>
@@ -4565,32 +4712,12 @@
         let currentUser = null;
         let apiKeys = [];
         let selectedApiKeyId = null;
-        let cachedKeyGroups = []; // 缓存的分组列表
 
         // 分页相关状态
         let currentPage = 1;
         let pageSize = 10;
         let totalKeys = 0;
         let currentProvider = 'digitalocean'; // 当前选中的服务商标签页，默认为DigitalOcean
-
-        // 加载分组列表（从已有的API密钥中收集，并更新下拉框）
-        async function loadCachedKeyGroups() {
-            // 只允许“自用”和“租机”
-            cachedKeyGroups = ['自用', '租机'];
-            // 更新添加密钥表单的下拉列表
-            const groupSelect = document.getElementById('api-key-group');
-            if (groupSelect) {
-                const currentValue = groupSelect.value;
-                groupSelect.innerHTML = cachedKeyGroups.map(g => 
-                    `<option value="${g}" ${g === currentValue ? 'selected' : ''}>${g}</option>`
-                ).join('');
-            }
-            // 更新备用密钥分组的datalist
-            const datalist = document.getElementById('existing-groups-list');
-            if (datalist) {
-                datalist.innerHTML = cachedKeyGroups.map(g => `<option value="${g}">`).join('');
-            }
-        }
 
         // 自动补机相关变量
         let replenishTasks = [];
@@ -4622,13 +4749,12 @@
             document.getElementById('task-auto-add-instance').checked = true;
             document.getElementById('task-check-interval').value = '5';
             document.getElementById('task-check-interval-unit').value = 'minutes';
-            document.getElementById('task-backup-group').value = '';
             document.getElementById('task-instances-list').innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">请先勾选上方的API密钥</div>';
             
             // 加载数据
             loadTaskApiKeys().then(() => {
                 loadTaskTemplates();
-                loadTaskKeyGroups();
+                loadReplenishApiKeys();
                 
                 if (taskId) {
                     loadTaskForEdit(taskId);
@@ -4692,7 +4818,8 @@
                     <div class="text-xs" style="color: var(--text-secondary);">
                         <span><i class="fas fa-server"></i> ${task.instance_count || 0}台机器</span>
                         <span class="ml-3"><i class="fas fa-key"></i> ${task.api_key_count || 0}个密钥</span>
-                        <span class="ml-3"><i class="fas fa-file-alt"></i> ${task.template_name || '未设置模板'}</span>
+                        <span class="ml-3"><i class="fas fa-file-alt"></i> ${task.template_id ? (task.template_name || '<span style="color: var(--danger-600);">模板已删除(ID:' + task.template_id + ')</span>') : '未设置模板'}</span>
+                        ${task.enabled ? '<button class="ml-3 btn btn-xs btn-success" onclick="testReplenishTask(' + task.id + ')" title="手动测试补机"><i class="fas fa-vial"></i> 测试</button>' : ''}
                     </div>
                 </div>
             `).join('');
@@ -4715,7 +4842,6 @@
                                    onchange="onTaskApiKeyChange()">
                             <span class="text-sm">${key.name}</span>
                             <span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary);">${key.provider}</span>
-                            ${key.key_group ? `<span class="text-xs" style="color: var(--text-secondary);">[${key.key_group}]</span>` : ''}
                         </label>
                     `).join('');
                 }
@@ -4731,8 +4857,22 @@
             
             if (selectedKeyIds.length === 0) {
                 container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">请先勾选上方的API密钥</div>';
+                // 重置补机密钥池和模板为全部
+                loadReplenishApiKeys();
+                loadTaskTemplates();
                 return;
             }
+            
+            // 获取选中密钥的云服务商
+            const selectedProviders = new Set();
+            document.querySelectorAll('.task-apikey-checkbox:checked').forEach(cb => {
+                const provider = cb.getAttribute('data-provider');
+                if (provider) selectedProviders.add(provider);
+            });
+            
+            // 过滤补机密钥池和模板
+            loadReplenishApiKeys(selectedProviders);
+            loadTaskTemplates(selectedProviders);
             
             container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
             
@@ -4769,23 +4909,62 @@
         }
         
         // 加载模板列表
-        async function loadTaskTemplates() {
+        async function loadTaskTemplates(providerFilter = null) {
             try {
                 const data = await apiCall('/api/templates');
-                const templates = data.data?.templates || [];
+                let templates = data.data?.templates || [];
+                
+                // 如果有provider过滤条件，只显示匹配的模板
+                if (providerFilter && providerFilter.size > 0) {
+                    templates = templates.filter(t => providerFilter.has(t.provider));
+                }
+                
                 const select = document.getElementById('task-template');
-                select.innerHTML = '<option value="">选择补机模板</option>' + 
-                    templates.map(t => `<option value="${t.id}">${t.name} (${t.provider})</option>`).join('');
+                if (templates.length === 0 && providerFilter && providerFilter.size > 0) {
+                    select.innerHTML = '<option value="">暂无匹配的模板</option>';
+                } else {
+                    select.innerHTML = '<option value="">选择补机模板</option>' + 
+                        templates.map(t => `<option value="${t.id}">${t.name} (${t.provider})</option>`).join('');
+                }
             } catch (error) {
                 console.error('加载模板失败:', error);
             }
         }
         
-        // 加载分组列表到任务表单
-        function loadTaskKeyGroups() {
-            const datalist = document.getElementById('existing-groups-list');
-            datalist.innerHTML = cachedKeyGroups.map(g => `<option value="${g}">`).join('');
+        // 加载补机密钥池列表
+        async function loadReplenishApiKeys(providerFilter = null) {
+            try {
+                const data = await apiCall('/api/apikeys');
+                allApiKeys = data.data?.keys || data.data || [];
+                const container = document.getElementById('task-replenish-apikeys-list');
+                
+                // 如果有provider过滤条件，只显示匹配的密钥
+                let filteredKeys = allApiKeys;
+                if (providerFilter && providerFilter.size > 0) {
+                    filteredKeys = allApiKeys.filter(key => providerFilter.has(key.provider));
+                }
+                
+                if (filteredKeys.length === 0) {
+                    if (providerFilter && providerFilter.size > 0) {
+                        container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">暂无匹配的补机密钥</div>';
+                    } else {
+                        container.innerHTML = '<div class="text-xs text-center py-2" style="color: var(--text-secondary);">暂无API密钥，请先添加</div>';
+                    }
+                } else {
+                    container.innerHTML = filteredKeys.map(key => `
+                        <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                            <input type="checkbox" class="task-replenish-apikey-checkbox" value="${key.id}" 
+                                   data-name="${key.name}" data-provider="${key.provider}">
+                            <span class="text-sm">${key.name}</span>
+                            <span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary);">${key.provider}</span>
+                        </label>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载补机密钥池失败:', error);
+            }
         }
+        
         
         // 加载任务进行编辑
         async function loadTaskForEdit(taskId) {
@@ -4796,7 +4975,6 @@
                 document.getElementById('task-name').value = task.name;
                 document.getElementById('task-enabled').checked = task.enabled;
                 document.getElementById('task-template').value = task.template_id || '';
-                document.getElementById('task-backup-group').value = task.backup_group || '';
                 document.getElementById('task-auto-add-instance').checked = task.auto_add_new_instance !== false;
                 
                 const checkInterval = task.check_interval || 5;
@@ -4809,10 +4987,22 @@
                 }
                 
                 const apiKeyIds = JSON.parse(task.api_key_ids || '[]');
-                apiKeyIds.forEach(id => {
+                
+                // 勾选监控密钥（从 instance_key_mapping 提取）
+                const instanceKeyMapping = JSON.parse(task.instance_key_mapping || '[]');
+                const monitorApiKeyIds = [...new Set(instanceKeyMapping.map(m => String(m.apiKeyId)))];
+                monitorApiKeyIds.forEach(id => {
                     const cb = document.querySelector(`.task-apikey-checkbox[value="${id}"]`);
                     if (cb) cb.checked = true;
                 });
+                
+                // 勾选补机密钥池（使用 api_key_ids）
+                setTimeout(() => {
+                    apiKeyIds.forEach(id => {
+                        const cb = document.querySelector(`.task-replenish-apikey-checkbox[value="${id}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                }, 300);
                 
                 if (apiKeyIds.length > 0) {
                     await onTaskApiKeyChange();
@@ -4837,7 +5027,6 @@
                 const name = document.getElementById('task-name').value.trim();
                 const enabled = document.getElementById('task-enabled').checked;
                 const templateId = document.getElementById('task-template').value;
-                const backupGroup = document.getElementById('task-backup-group').value;
                 const autoAddInstance = document.getElementById('task-auto-add-instance').checked;
                 
                 const intervalValue = parseInt(document.getElementById('task-check-interval').value) || 5;
@@ -4845,6 +5034,7 @@
                 const checkInterval = intervalUnit === 'hours' ? intervalValue * 60 : intervalValue;
                 
                 const selectedApiKeys = Array.from(document.querySelectorAll('.task-apikey-checkbox:checked')).map(cb => cb.value);
+                const selectedReplenishKeys = Array.from(document.querySelectorAll('.task-replenish-apikey-checkbox:checked')).map(cb => cb.value);
                 const selectedInstances = Array.from(document.querySelectorAll('.task-instance-checkbox:checked')).map(cb => ({
                     id: cb.value,
                     apiKeyId: cb.dataset.apiKeyId
@@ -4866,13 +5056,16 @@
                     showToast('请选择补机模板', 'error');
                     return;
                 }
+                if (selectedReplenishKeys.length === 0) {
+                    showToast('请至少选择一个补机密钥', 'error');
+                    return;
+                }
                 
                 const taskData = {
                     name,
                     enabled,
                     template_id: parseInt(templateId),
-                    backup_group: backupGroup,
-                    api_key_ids: JSON.stringify(selectedApiKeys),
+                    api_key_ids: JSON.stringify(selectedReplenishKeys),
                     instance_ids: JSON.stringify(selectedInstances.map(i => i.id)),
                     instance_key_mapping: JSON.stringify(selectedInstances),
                     auto_add_new_instance: autoAddInstance,
@@ -4897,6 +5090,46 @@
                 loadReplenishTasks();
             } catch (error) {
                 showToast('保存任务失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 手动测试补机任务
+        async function testReplenishTask(taskId) {
+            if (!confirm('确定要手动触发一次补机检查吗？\n\n这将检查任务中配置的机器是否存在，如果不存在则自动创建新机器。')) {
+                return;
+            }
+            
+            try {
+                showToast('正在执行补机检查...', 'info');
+                
+                const result = await apiCall(`/api/auto-replenish/tasks/${taskId}/test`, {
+                    method: 'POST'
+                });
+                
+                const data = result.data;
+                let message = '测试完成\n\n';
+                message += `检查的机器: ${data.checked_instances || 0}台\n`;
+                message += `缺失的机器: ${data.missing_instances || 0}台\n`;
+                
+                if (data.created_instances && data.created_instances.length > 0) {
+                    message += `\n已创建新机器:\n`;
+                    data.created_instances.forEach(inst => {
+                        message += `- ${inst.name} (${inst.ip_address || '等待分配IP'})\n`;
+                    });
+                    showToast('✅ 补机成功！已创建 ' + data.created_instances.length + ' 台新机器', 'success');
+                    alert(message);
+                } else if (data.missing_instances === 0) {
+                    showToast('✅ 所有机器正常运行，无需补机', 'success');
+                } else {
+                    message += `\n${data.message || '未执行补机操作'}`;
+                    alert(message);
+                    showToast('⚠️ ' + (data.message || '检查完成'), 'warning');
+                }
+                
+                loadReplenishTasks();
+            } catch (error) {
+                console.error('测试补机失败:', error);
+                showToast('测试失败: ' + error.message, 'error');
             }
         }
         
@@ -4964,9 +5197,14 @@
                                 <span class="font-semibold">${t.name}</span>
                                 <span class="text-xs px-2 py-0.5 rounded ml-2" style="background: var(--bg-tertiary);">${t.provider}</span>
                             </div>
-                            <button class="btn btn-sm btn-danger" onclick="deleteTemplate(${t.id})" title="删除">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="flex items-center gap-1">
+                                <button class="btn btn-sm" style="padding: 4px 8px;" onclick="editTemplate(${t.id})" title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteTemplate(${t.id})" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="text-xs mt-2" style="color: var(--text-secondary);">
                             <span>${t.region}</span> · <span>${t.plan}</span> · <span>${t.image}</span>
@@ -4976,6 +5214,67 @@
             } catch (error) {
                 console.error('加载模板失败:', error);
                 container.innerHTML = '<div class="text-center py-4 text-danger">加载失败</div>';
+            }
+        }
+        
+        // 编辑模板
+        async function editTemplate(templateId) {
+            try {
+                const data = await apiCall(`/api/templates/${templateId}`);
+                const template = data.data;
+                
+                // 显示编辑模态框
+                document.getElementById('editTemplateModal').classList.remove('hidden');
+                document.getElementById('editTemplateId').value = template.id;
+                document.getElementById('editTemplateNameInput').value = template.name;
+                document.getElementById('editTemplateUserScriptInput').value = template.user_data || '';
+                
+                // 显示只读的配置信息
+                document.getElementById('editTemplateInfo').innerHTML = `
+                    <div class="text-xs" style="color: var(--text-secondary);">
+                        <span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary);">${template.provider}</span>
+                        <span class="ml-2">${template.region_display || template.region}</span> · 
+                        <span>${template.plan_display || template.plan}</span> · 
+                        <span>${template.image_display || template.image}</span>
+                    </div>
+                `;
+            } catch (error) {
+                showToast('加载模板失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 关闭编辑模板弹窗
+        function closeEditTemplateModal() {
+            document.getElementById('editTemplateModal').classList.add('hidden');
+            document.getElementById('editTemplateId').value = '';
+            document.getElementById('editTemplateNameInput').value = '';
+            document.getElementById('editTemplateUserScriptInput').value = '';
+        }
+        
+        // 提交编辑模板
+        async function submitEditTemplate() {
+            const templateId = document.getElementById('editTemplateId').value;
+            const templateName = document.getElementById('editTemplateNameInput').value.trim();
+            const userScript = document.getElementById('editTemplateUserScriptInput').value || '';
+            
+            if (!templateName) {
+                showToast('请输入模板名称', 'warning');
+                return;
+            }
+            
+            try {
+                await apiCall(`/api/templates/${templateId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        name: templateName,
+                        user_data: userScript
+                    })
+                });
+                showToast('模板更新成功！', 'success');
+                closeEditTemplateModal();
+                loadTemplates(); // 刷新模板列表
+            } catch (error) {
+                showToast('更新模板失败: ' + error.message, 'error');
             }
         }
         
@@ -4999,31 +5298,88 @@
             const plan = document.getElementById('createPlanSelect')?.value;
             const image = document.getElementById('createImageSelect')?.value;
             const userScript = document.getElementById('createUserScriptInput')?.value || '';
+            const rootPassword = document.getElementById('createPasswordInput')?.value || '';
             
             if (!region || !plan || !image) {
                 showToast('请先选择区域、配置和系统镜像', 'warning');
                 return;
             }
             
-            // 弹出输入模板名称
-            const templateName = prompt('请输入模板名称：');
-            if (!templateName || !templateName.trim()) {
+            // 获取当前选中的API密钥
+            if (!selectedApiKeyId) {
+                showToast('请先选择API密钥', 'warning');
                 return;
             }
+            const selectedKey = apiKeys.find(key => key.id === selectedApiKeyId);
+            if (!selectedKey) {
+                showToast('未找到选中的API密钥', 'error');
+                return;
+            }
+            const provider = selectedKey.provider;
             
-            // 获取当前选中的 provider
-            const provider = currentApiKey?.provider || 'digitalocean';
+            // 显示创建模板弹窗
+            showCreateTemplateModal(provider, region, plan, image, userScript, rootPassword);
+        }
+        
+        // 显示创建模板弹窗
+        function showCreateTemplateModal(provider, region, plan, image, userScript, rootPassword) {
             
-            // 获取显示文本
+            // 获取显示文本生成智能默认名称
             const regionText = document.getElementById('createRegionSelect')?.selectedOptions[0]?.text || region;
             const planText = document.getElementById('createPlanSelect')?.selectedOptions[0]?.text || plan;
             const imageText = document.getElementById('createImageSelect')?.selectedOptions[0]?.text || image;
+            
+            // 生成智能默认名称
+            const defaultName = `${provider.toUpperCase()}-${imageText.split(' ')[0]}-${planText.split(' ')[0]}`;
+            
+            // 显示模态框
+            document.getElementById('createTemplateModal').classList.remove('hidden');
+            document.getElementById('templateNameInput').value = defaultName;
+            document.getElementById('templateUserScriptInput').value = userScript || '';
+            
+            // 保存上下文数据供提交使用
+            window.templateContext = {
+                provider,
+                region,
+                regionText,
+                plan,
+                planText,
+                image,
+                imageText,
+                rootPassword
+            };
+        }
+        
+        // 关闭创建模板弹窗
+        function closeCreateTemplateModal() {
+            document.getElementById('createTemplateModal').classList.add('hidden');
+            document.getElementById('templateNameInput').value = '';
+            document.getElementById('templateUserScriptInput').value = '';
+            window.templateContext = null;
+        }
+        
+        // 提交创建模板
+        async function submitCreateTemplate() {
+            const templateName = document.getElementById('templateNameInput').value.trim();
+            const userScript = document.getElementById('templateUserScriptInput').value || '';
+            
+            if (!templateName) {
+                showToast('请输入模板名称', 'warning');
+                return;
+            }
+            
+            if (!window.templateContext) {
+                showToast('模板上下文丢失，请重试', 'error');
+                return;
+            }
+            
+            const { provider, region, regionText, plan, planText, image, imageText, rootPassword } = window.templateContext;
             
             try {
                 await apiCall('/api/templates', {
                     method: 'POST',
                     body: JSON.stringify({
-                        name: templateName.trim(),
+                        name: templateName,
                         provider: provider,
                         region: region,
                         region_display: regionText,
@@ -5031,10 +5387,12 @@
                         plan_display: planText,
                         image: image,
                         image_display: imageText,
-                        user_script: userScript
+                        user_data: userScript,
+                        root_password: rootPassword || undefined
                     })
                 });
                 showToast('模板保存成功！', 'success');
+                closeCreateTemplateModal();
             } catch (error) {
                 showToast('保存模板失败: ' + error.message, 'error');
             }
@@ -5472,7 +5830,6 @@
                             <thead>
                                 <tr>
                                     <th>名称</th>
-                                    <th>分组</th>
                                     <th>状态</th>
                                     <th>添加时间</th>
                                     <th>存活时间</th>
@@ -5486,11 +5843,6 @@
                                         <td>
                                             <div class="api-key-name">${key.name}</div>
                                             <div class="api-key-id">ID: ${key.id}</div>
-                                        </td>
-                                        <td>
-                                            <span class="key-group-tag ${key.key_group === '自用' ? 'self-use' : key.key_group === '租机' ? 'rental' : 'custom'}">
-                                                ${key.key_group || '未分组'}
-                                            </span>
                                         </td>
                                         <td>
                                             <div class="health-indicator">
@@ -6105,22 +6457,19 @@
         }
 
         // 添加 API 密钥
-        async function addApiKey(name, provider, key, keyGroup) {
+        async function addApiKey(name, provider, key) {
             try {
                 const response = await apiCall('/api/apikeys', {
                     method: 'POST',
-                    body: JSON.stringify({ name, provider, key, key_group: keyGroup || '自用' })
+                    body: JSON.stringify({ name, provider, key })
                 });
                 
                 showMessage('API 密钥添加成功！', 'success');
                 document.getElementById('add-api-key-modal').classList.add('hidden');
                 document.getElementById('add-api-key-form').reset();
-                // 重置分组为默认值
-                document.getElementById('api-key-group').value = '自用';
                 
-                // 重新加载密钥列表和分组
+                // 重新加载密钥列表
                 await loadApiKeys();
-                await loadCachedKeyGroups();
                 
                 // 如果返回了新密钥的ID，自动选择它
                 if (response && response.id) {
@@ -8758,9 +9107,6 @@
             // 页面初始化 - 检查登录状态
             checkAuthStatus();
             
-            // 加载分组列表
-            loadCachedKeyGroups();
-            
             // 初始化实例视图模式
             initInstanceViewMode();
             
@@ -8903,15 +9249,22 @@
             });
 
             // Telegram 设置相关
-            document.getElementById('telegram-enabled-toggle').addEventListener('change', function() {
-                const content = document.getElementById('telegram-settings-content');
-                if (this.checked) {
-                    content.classList.remove('hidden');
-                } else {
-                    content.classList.add('hidden');
-                }
+            document.getElementById('telegram-enabled-toggle').addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                const botTokenInput = document.getElementById('telegram-bot-token');
+                const userIdInput = document.getElementById('telegram-user-id');
+                const notificationTimeInput = document.getElementById('telegram-notification-time');
+                const autoTestInterval = document.getElementById('telegram-auto-test-interval');
+                const testBtn = document.getElementById('test-telegram-notification-btn');
+                
+                // 启用/禁用输入框
+                botTokenInput.disabled = !enabled;
+                userIdInput.disabled = !enabled;
+                if (notificationTimeInput) notificationTimeInput.disabled = !enabled;
+                if (autoTestInterval) autoTestInterval.disabled = !enabled;
+                testBtn.disabled = !enabled;
             });
-
+            
             document.getElementById('save-telegram-settings-btn').addEventListener('click', saveTelegramSettings);
             document.getElementById('test-telegram-notification-btn').addEventListener('click', testTelegramNotification);
 
@@ -9077,7 +9430,6 @@
                 e.preventDefault();
                 const name = document.getElementById('api-key-name').value;
                 const provider = document.getElementById('api-key-provider').value;
-                const keyGroup = document.getElementById('api-key-group').value.trim() || '自用';
                 
                 let key;
                 
@@ -9112,7 +9464,7 @@
                     key = document.getElementById('api-key-value').value;
                 }
                 
-                addApiKey(name, provider, key, keyGroup);
+                addApiKey(name, provider, key);
             });
 
             // 实例相关
@@ -9491,6 +9843,14 @@
                     
                     // 生成合并脚本（包含Root密码设置、IPv6配置和用户自定义脚本）
                     const mergedScript = generateMergedScript(rootPassword, userScript, enableIPv6 && selectedKey.provider === 'digitalocean');
+                    
+                    console.log('📝 前端生成的脚本信息:', {
+                        userScriptLength: userScript?.length || 0,
+                        mergedScriptLength: mergedScript?.length || 0,
+                        hasUserScript: !!userScript && userScript.trim().length > 0,
+                        provider: selectedKey.provider,
+                        enableIPv6: enableIPv6
+                    });
 
                     // 基础数据
                     const baseData = {
@@ -9967,9 +10327,69 @@
             // 自动加载云服务商选项
             if (selectedApiKeyId) {
                 loadProviderOptionsFromSelectedKey();
+                loadInstanceTemplates(); // 加载模板列表
             }
             
             document.getElementById('createInstanceModal').classList.remove('hidden');
+        }
+        
+        // 加载实例模板列表
+        async function loadInstanceTemplates() {
+            try {
+                if (!selectedApiKeyId) return;
+                
+                const selectedKey = apiKeys.find(key => key.id === selectedApiKeyId);
+                if (!selectedKey) return;
+                
+                const provider = selectedKey.provider;
+                const data = await apiCall('/api/templates');
+                const allTemplates = data.data?.templates || [];
+                
+                // 只显示匹配当前provider的模板
+                const templates = allTemplates.filter(t => t.provider === provider);
+                
+                const select = document.getElementById('instanceTemplateSelect');
+                select.innerHTML = '<option value="">不使用模板，手动配置</option>' + 
+                    templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            } catch (error) {
+                console.error('加载模板列表失败:', error);
+            }
+        }
+        
+        // 处理模板选择变化
+        async function onInstanceTemplateChange() {
+            const templateId = document.getElementById('instanceTemplateSelect').value;
+            
+            if (!templateId) {
+                // 清空表单
+                document.getElementById('createUserScriptInput').value = '';
+                document.getElementById('createPasswordInput').value = '';
+                document.getElementById('createNameInput').value = '';
+                return;
+            }
+            
+            try {
+                const data = await apiCall(`/api/templates/${templateId}`);
+                const template = data.data;
+                
+                // 自动填充表单
+                document.getElementById('createRegionSelect').value = template.region || '';
+                document.getElementById('createImageSelect').value = template.image || '';
+                document.getElementById('createPlanSelect').value = template.plan || '';
+                document.getElementById('createUserScriptInput').value = template.user_data || '';
+                
+                // 填充Root密码（如果模板中保存了）
+                if (template.root_password) {
+                    document.getElementById('createPasswordInput').value = template.root_password;
+                }
+                
+                // 触发相关的change事件以更新UI
+                document.getElementById('createRegionSelect').dispatchEvent(new Event('change'));
+                
+                showToast('已自动填充模板配置，您可以继续修改', 'success');
+            } catch (error) {
+                showToast('加载模板失败: ' + error.message, 'error');
+            }
         }
 
         // 更新当前API密钥信息显示
@@ -9993,6 +10413,7 @@
             document.getElementById('createInstanceForm').reset();
             document.getElementById('createCountInput').value = 1;
             document.getElementById('createUserScriptInput').value = ''; // 清空自定义脚本
+            document.getElementById('instanceTemplateSelect').value = ''; // 重置模板选择
             resetCreateForm();
         }
 
@@ -10001,6 +10422,9 @@
             document.getElementById('createPlanSelect').disabled = true;
             document.getElementById('createImageSelect').disabled = true;
             document.getElementById('submitCreateButton').disabled = true;
+            
+            // 重置模板选择
+            document.getElementById('instanceTemplateSelect').innerHTML = '<option value="">不使用模板，手动配置</option>';
             
             // 清除事件监听器
             document.getElementById('createRegionSelect').onchange = null;
@@ -10591,9 +11015,9 @@
 
         // 修改删除实例函数，使用新的确认对话框
         function deleteInstance(instanceId) {
-            // 获取实例名称
-            const instanceCard = document.querySelector(`[data-instance-id="${instanceId}"]`);
-            const instanceName = instanceCard ? instanceCard.querySelector('.instance-name').textContent : `ID: ${instanceId}`;
+            // 获取实例名称 - 从 checkbox 的 data-instance-name 属性获取
+            const checkbox = document.querySelector(`.instance-select[data-instance-id="${instanceId}"]`);
+            const instanceName = checkbox && checkbox.dataset.instanceName ? checkbox.dataset.instanceName : `ID: ${instanceId}`;
             showDeleteConfirm(instanceId, instanceName);
         }
 
@@ -10889,31 +11313,47 @@ echo "CloudPanel auto-configuration completed at $(date)" >> /var/log/cloudpanel
                 const settings = data.data;
                 
                 // 更新界面
-                document.getElementById('telegram-enabled-toggle').checked = settings.telegram_enabled;
+                const enabledToggle = document.getElementById('telegram-enabled-toggle');
+                enabledToggle.checked = settings.telegram_enabled || false; // 默认不启用
                 document.getElementById('telegram-user-id').value = settings.telegram_user_id || '';
+                document.getElementById('telegram-notification-time').value = settings.telegram_notification_time || '08:00';
                 
-                // 显示/隐藏设置内容
-                const content = document.getElementById('telegram-settings-content');
-                if (settings.telegram_enabled) {
-                    content.classList.remove('hidden');
-                } else {
-                    content.classList.add('hidden');
+                // 更新定时检查间隔（这是前端新增的，后端暂不存储，使用默认值）
+                const autoTestInterval = document.getElementById('telegram-auto-test-interval');
+                if (autoTestInterval) {
+                    autoTestInterval.value = '6'; // 默认6小时
                 }
                 
+                // 不再隐藏设置内容，而是根据启用状态设置disabled
+                const content = document.getElementById('telegram-settings-content');
+                const botTokenInput = document.getElementById('telegram-bot-token');
+                const userIdInput = document.getElementById('telegram-user-id');
+                const notificationTimeInput = document.getElementById('telegram-notification-time');
+                const saveBtn = document.getElementById('save-telegram-settings-btn');
+                const testBtn = document.getElementById('test-telegram-notification-btn');
+                
+                // 根据启用状态禁用/启用输入框
+                const enabled = settings.telegram_enabled || false;
+                botTokenInput.disabled = !enabled;
+                userIdInput.disabled = !enabled;
+                if (notificationTimeInput) notificationTimeInput.disabled = !enabled;
+                if (autoTestInterval) autoTestInterval.disabled = !enabled;
+                saveBtn.disabled = false; // 保存按钮始终可用
+                testBtn.disabled = !settings.telegram_enabled;
+                
                 // 如果有Token，显示部分明文
-                const tokenInput = document.getElementById('telegram-bot-token');
                 if (settings.telegram_bot_token_display) {
                     // 显示部分明文，让用户知道Token已保存
-                    tokenInput.value = settings.telegram_bot_token_display;
-                    tokenInput.setAttribute('data-has-saved-token', 'true');
+                    botTokenInput.value = settings.telegram_bot_token_display;
+                    botTokenInput.setAttribute('data-has-saved-token', 'true');
                     console.log('💾 显示已保存的Token部分内容:', settings.telegram_bot_token_display);
                 } else if (settings.telegram_has_token) {
                     // 如果有Token但无法显示，使用占位符
-                    tokenInput.placeholder = '••••••••••••••••••••••••••••••••••••••••';
-                    tokenInput.setAttribute('data-has-saved-token', 'true');
+                    botTokenInput.placeholder = '••••••••••••••••••••••••••••••••••••••••';
+                    botTokenInput.setAttribute('data-has-saved-token', 'true');
                 } else {
                     // 清除保存标志
-                    tokenInput.removeAttribute('data-has-saved-token');
+                    botTokenInput.removeAttribute('data-has-saved-token');
                 }
                 
             } catch (error) {
@@ -10927,10 +11367,11 @@ echo "CloudPanel auto-configuration completed at $(date)" >> /var/log/cloudpanel
             setLoading(saveBtn, true);
             
             try {
+                const notificationTimeInput = document.getElementById('telegram-notification-time');
                 const settings = {
                     telegram_enabled: document.getElementById('telegram-enabled-toggle').checked,
                     telegram_user_id: document.getElementById('telegram-user-id').value.trim(),
-                    telegram_notification_time: '08:00',  // 固定时间,由 Worker cron 控制
+                    telegram_notification_time: notificationTimeInput ? notificationTimeInput.value : '08:00',
                     telegram_timezone: 'Asia/Shanghai'  // 固定时区
                 };
                 
@@ -10952,6 +11393,11 @@ echo "CloudPanel auto-configuration completed at $(date)" >> /var/log/cloudpanel
                         // 如果没有输入新Token但有旧Token，不更新Token
                         console.log('🔄 保持现有Token，不更新');
                     } else if (token && !isDisplayToken) {
+                        // 验证Token格式
+                        if (!/^\d+:[A-Za-z0-9_-]{35,}$/.test(token)) {
+                            showMessage('Bot Token格式错误，应为: 数字:字符串，例如 123456789:ABCdefGHI...', 'error');
+                            return;
+                        }
                         // 只有当输入的是完整Token时才更新
                         settings.telegram_bot_token = token;
                         console.log('🔑 添加新Token到设置');
@@ -10994,6 +11440,32 @@ echo "CloudPanel auto-configuration completed at $(date)" >> /var/log/cloudpanel
                 showMessage(`保存失败: ${error.message}`, 'error');
             } finally {
                 setLoading(saveBtn, false);
+            }
+        }
+        
+        // 验证Telegram Bot Token格式
+        function validateTelegramToken() {
+            const tokenInput = document.getElementById('telegram-bot-token');
+            const errorDiv = document.getElementById('telegram-token-error');
+            const token = tokenInput.value.trim();
+            
+            // 如果是空的或者是显示的部分token（包含...），不验证
+            if (!token || token.includes('...')) {
+                errorDiv.classList.add('hidden');
+                return true;
+            }
+            
+            // 验证格式：数字:字母数字和-_字符，至少35个字符
+            const isValid = /^\d+:[A-Za-z0-9_-]{35,}$/.test(token);
+            
+            if (isValid) {
+                errorDiv.classList.add('hidden');
+                tokenInput.style.borderColor = '';
+                return true;
+            } else {
+                errorDiv.classList.remove('hidden');
+                tokenInput.style.borderColor = 'var(--danger-500)';
+                return false;
             }
         }
 

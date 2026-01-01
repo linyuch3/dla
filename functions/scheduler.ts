@@ -4,6 +4,8 @@ import { config } from './config';
 import { getDatabase } from './shared/db-adapter';
 import { createDatabaseService } from './shared/db';
 import { createCloudProviderFromEncryptedKey } from './shared/cloud-providers';
+import { sendTelegramNotification } from './shared/telegram-notify';
+import { checkApiKeyHealth } from './api/apikeys/validate-batch';
 
 export function scheduleHealthCheck() {
   // 解析配置的时间 (格式: HH:MM)
@@ -30,6 +32,103 @@ export function scheduleHealthCheck() {
   // runHealthCheck();
   
   return job;
+}
+
+// 定时测试所有API密钥（每6小时一次）
+export function scheduleApiKeyTest() {
+  // 每6小时测试一次: 00:00, 06:00, 12:00, 18:00
+  const cronExpression = '0 0 */6 * * *';
+  
+  console.log(`定时API密钥测试已配置: ${cronExpression} (UTC)`);
+  
+  const job = new CronJob(
+    cronExpression,
+    async () => {
+      console.log('执行定时API密钥测试...');
+      await runApiKeyTest();
+    },
+    null,
+    true,
+    'UTC'
+  );
+  
+  return job;
+}
+
+async function runApiKeyTest() {
+  try {
+    const env = {
+      DB: getDatabase(config.database.path),
+      ENCRYPTION_KEY: config.encryption.key,
+      TELEGRAM_BOT_TOKEN: config.telegram.botToken,
+      TELEGRAM_ADMIN_ID: config.telegram.adminId
+    };
+    
+    const db = createDatabaseService(env as any);
+    
+    // 获取所有用户
+    const users = await db.getAllUsers();
+    console.log(`开始测试所有用户的API密钥，共 ${users.length} 个用户`);
+    
+    for (const user of users) {
+      try {
+        // 获取用户的所有API密钥
+        const apiKeys = await db.getUserApiKeys(user.id);
+        if (apiKeys.length === 0) continue;
+        
+        console.log(`测试用户 ${user.username} 的 ${apiKeys.length} 个API密钥...`);
+        
+        let failedCount = 0;
+        let limitedCount = 0;
+        
+        // 测试每个密钥
+        for (const key of apiKeys) {
+          try {
+            const result = await checkApiKeyHealth(key, config.encryption.key);
+            
+            // 更新数据库中的健康状态
+            await db.updateApiKeyHealth(key.id, result.status, result.error);
+            
+            // 如果失效或受限，发送通知
+            if (result.status === 'unhealthy') {
+              failedCount++;
+              if (user.telegram_enabled) {
+                await sendTelegramNotification(env as any, user.id, {
+                  type: 'api_key_failed',
+                  apiKeyName: key.name,
+                  provider: key.provider,
+                  errorMessage: result.error || '未知错误'
+                });
+              }
+            } else if (result.status === 'limited') {
+              limitedCount++;
+              if (user.telegram_enabled) {
+                await sendTelegramNotification(env as any, user.id, {
+                  type: 'api_key_limited',
+                  apiKeyName: key.name,
+                  provider: key.provider,
+                  errorMessage: result.error || 'API调用受限'
+                });
+              }
+            }
+            
+            // 延迟避免请求过快
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (error) {
+            console.error(`测试密钥 ${key.name} 失败:`, error);
+          }
+        }
+        
+        console.log(`用户 ${user.username} 测试完成: 失效 ${failedCount}, 受限 ${limitedCount}`);
+      } catch (error) {
+        console.error(`测试用户 ${user.username} 的密钥时出错:`, error);
+      }
+    }
+    
+    console.log('所有用户的API密钥测试完成');
+  } catch (error) {
+    console.error('定时API密钥测试失败:', error);
+  }
 }
 
 async function runHealthCheck() {

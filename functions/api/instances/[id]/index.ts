@@ -3,6 +3,7 @@ import { RequestContext, ValidationError } from '../../../shared/types';
 import { createDatabaseService } from '../../../shared/db';
 import { createCloudProviderFromEncryptedKey, CloudInstanceManager } from '../../../shared/cloud-providers';
 import { authMiddleware, createErrorResponse, createSuccessResponse } from '../../../shared/auth';
+import { sendTelegramNotification } from '../../../shared/telegram-notify';
 
 // DELETE /api/instances/{id} - 删除实例
 export async function onRequestDelete(context: RequestContext): Promise<Response> {
@@ -52,6 +53,14 @@ export async function onRequestDelete(context: RequestContext): Promise<Response
     if (!result) {
       return createErrorResponse('删除实例失败', 500, 'DELETE_FAILED');
     }
+
+    // 发送 Telegram 通知
+    sendTelegramNotification(env, session.userId, {
+      type: 'instance_delete',
+      instanceName: instanceId,
+      instanceId: instanceId,
+      provider: apiKey.provider
+    }).catch(err => console.error('发送删除实例通知失败:', err));
 
     return createSuccessResponse({
       instanceId,

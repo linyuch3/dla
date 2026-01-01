@@ -3,6 +3,7 @@ import { RequestContext, ValidationError, CONSTANTS } from '../../../shared/type
 import { createDatabaseService } from '../../../shared/db';
 import { createCloudProviderFromEncryptedKey, CloudInstanceManager } from '../../../shared/cloud-providers';
 import { authMiddleware, createErrorResponse, createSuccessResponse, validateRequestData } from '../../../shared/auth';
+import { sendTelegramNotification } from '../../../shared/telegram-notify';
 
 interface InstanceActionRequest {
   action: string;
@@ -29,6 +30,14 @@ function validateInstanceActionRequest(data: any): InstanceActionRequest {
 
 // POST /api/instances/{id}/action - 执行实例操作
 export async function onRequestPost(context: RequestContext): Promise<Response> {
+  // 从URL路径中获取实例ID
+  const url = new URL(context.request.url);
+  const pathParts = url.pathname.split('/');
+  const instanceId = pathParts[pathParts.length - 2]; // /api/instances/{id}/action
+  
+  let actionData: InstanceActionRequest | undefined;
+  let apiKey: any;
+  
   try {
     // 验证用户身份
     const authResult = await authMiddleware(context);
@@ -36,11 +45,6 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
 
     const { request, env } = context;
     const session = context.session!;
-
-    // 从URL路径中获取实例ID
-    const url = new URL(request.url);
-    const pathParts = url.pathname.split('/');
-    const instanceId = pathParts[pathParts.length - 2]; // /api/instances/{id}/action
 
     if (!instanceId) {
       return createErrorResponse('实例ID不能为空', 400, 'INVALID_INSTANCE_ID');
@@ -52,13 +56,13 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
     }
 
     // 验证请求数据
-    const actionData = await validateRequestData(request, validateInstanceActionRequest);
+    actionData = await validateRequestData(request, validateInstanceActionRequest);
 
     // 获取数据库服务
     const db = createDatabaseService(env);
 
     // 获取用户选中的 API 密钥
-    const apiKey = await db.getApiKeyById(session.selectedApiKeyId);
+    apiKey = await db.getApiKeyById(session.selectedApiKeyId);
     if (!apiKey || apiKey.user_id !== session.userId) {
       return createErrorResponse('API 密钥不存在或无权限访问', 403, 'INVALID_API_KEY');
     }
@@ -75,23 +79,28 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
     // 执行实例操作
     let result = false;
     let actionDescription = '';
+    let notificationType: 'instance_power_on' | 'instance_power_off' | 'instance_reboot' | null = null;
 
     switch (actionData.action) {
       case 'power_on':
         result = await instanceManager.startInstance(instanceId);
         actionDescription = '启动实例';
+        notificationType = 'instance_power_on';
         break;
       case 'power_off':
         result = await instanceManager.stopInstance(instanceId);
         actionDescription = '关闭实例';
+        notificationType = 'instance_power_off';
         break;
       case 'reboot':
         result = await instanceManager.rebootInstance(instanceId);
         actionDescription = '重启实例';
+        notificationType = 'instance_reboot';
         break;
       case 'shutdown':
         result = await instanceManager.stopInstance(instanceId);
         actionDescription = '关闭实例';
+        notificationType = 'instance_power_off';
         break;
       default:
         return createErrorResponse(`不支持的操作: ${actionData.action}`, 400, 'UNSUPPORTED_ACTION');
@@ -99,6 +108,16 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
 
     if (!result) {
       return createErrorResponse(`${actionDescription}失败`, 500, 'ACTION_FAILED');
+    }
+
+    // 发送 Telegram 通知
+    if (notificationType) {
+      sendTelegramNotification(env, session.userId, {
+        type: notificationType,
+        instanceName: instanceId,
+        instanceId: instanceId,
+        provider: apiKey.provider
+      }).catch(err => console.error('发送实例操作通知失败:', err));
     }
 
     return createSuccessResponse({
@@ -111,8 +130,8 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
   } catch (error) {
     console.error('实例操作失败:', {
       instanceId,
-      action: actionData.action,
-      provider: apiKey.provider,
+      action: actionData?.action,
+      provider: apiKey?.provider,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });

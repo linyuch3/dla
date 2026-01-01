@@ -68,6 +68,8 @@ export class DatabaseService {
       const setParts: string[] = [];
       const values: any[] = [];
       
+      console.log('🔍 [DB] updateUser 被调用, ID:', id, 'updates:', JSON.stringify(updates, null, 2));
+      
       if (updates.username !== undefined) {
         setParts.push('username = ?');
         values.push(updates.username);
@@ -78,7 +80,7 @@ export class DatabaseService {
       }
       if (updates.is_admin !== undefined) {
         setParts.push('is_admin = ?');
-        values.push(updates.is_admin);
+        values.push(updates.is_admin ? 1 : 0);
       }
       if (updates.telegram_bot_token !== undefined) {
         setParts.push('telegram_bot_token = ?');
@@ -90,7 +92,7 @@ export class DatabaseService {
       }
       if (updates.telegram_enabled !== undefined) {
         setParts.push('telegram_enabled = ?');
-        values.push(updates.telegram_enabled);
+        values.push(updates.telegram_enabled ? 1 : 0);
       }
       if (updates.telegram_notification_time !== undefined) {
         setParts.push('telegram_notification_time = ?');
@@ -106,14 +108,18 @@ export class DatabaseService {
       }
       
       if (setParts.length === 0) {
+        console.log('⚠️ [DB] setParts为空，返回false');
         return false;
       }
       
       values.push(id);
       
-      const result = await this.db.prepare(`
-        UPDATE users SET ${setParts.join(', ')} WHERE id = ?
-      `).bind(...values).run();
+      const sql = `UPDATE users SET ${setParts.join(', ')} WHERE id = ?`;
+      console.log('🔧 [DB] SQL:', sql, '参数:', values.length);
+      
+      const result = await this.db.prepare(sql).bind(...values).run();
+      
+      console.log('📊 [DB] 执行结果 success:', result.success, 'changes:', result.meta?.changes);
       
       return result.success && (result.meta?.changes || 0) > 0;
     } catch (error) {
@@ -176,14 +182,14 @@ export class DatabaseService {
   /**
    * 创建 API 密钥
    */
-  async createApiKey(name: string, encryptedKey: string, userId: number, provider: 'digitalocean' | 'linode' | 'azure', keyGroup: string = '自用'): Promise<number> {
+  async createApiKey(name: string, encryptedKey: string, userId: number, provider: 'digitalocean' | 'linode' | 'azure'): Promise<number> {
     try {
       // 添加密钥时，由于已经验证过了，直接设置为 healthy 状态
       const now = new Date().toISOString();
       const result = await this.db.prepare(`
-        INSERT INTO api_keys (name, encrypted_key, user_id, provider, health_status, last_checked, key_group)
-        VALUES (?, ?, ?, ?, 'healthy', ?, ?)
-      `).bind(name, encryptedKey, userId, provider, now, keyGroup).run();
+        INSERT INTO api_keys (name, encrypted_key, user_id, provider, health_status, last_checked)
+        VALUES (?, ?, ?, ?, 'healthy', ?)
+      `).bind(name, encryptedKey, userId, provider, now).run();
       
       if (!result.success) {
         throw new DatabaseError('创建 API 密钥失败');
@@ -516,45 +522,6 @@ export class DatabaseService {
     }
   }
 
-  // ========== API 密钥分组操作 ==========
-
-  /**
-   * 更新 API 密钥分组（支持自定义标签）
-   */
-  async updateApiKeyGroup(keyId: number, keyGroup: string): Promise<boolean> {
-    try {
-      const result = await this.db
-        .prepare('UPDATE api_keys SET key_group = ? WHERE id = ?')
-        .bind(keyGroup, keyId)
-        .run();
-      return result.success && (result.meta?.changes || 0) > 0;
-    } catch (error) {
-      throw new DatabaseError(`更新 API 密钥分组失败 (ID: ${keyId})`, error as Error);
-    }
-  }
-
-  /**
-   * 根据分组获取用户的健康 API 密钥
-   */
-  async getHealthyApiKeysByGroup(userId: number, keyGroup: 'personal' | 'rental', provider?: string): Promise<ApiKey[]> {
-    try {
-      let query = `SELECT * FROM api_keys WHERE user_id = ? AND key_group = ? AND health_status = 'healthy'`;
-      const params: any[] = [userId, keyGroup];
-      
-      if (provider) {
-        query += ' AND provider = ?';
-        params.push(provider);
-      }
-      
-      query += ' ORDER BY created_at DESC';
-      
-      const result = await this.db.prepare(query).bind(...params).all();
-      return result.results as unknown as ApiKey[];
-    } catch (error) {
-      throw new DatabaseError('查询健康 API 密钥时发生数据库错误', error as Error);
-    }
-  }
-
   // ========== 开机模板操作 ==========
 
   /**
@@ -748,7 +715,7 @@ export class DatabaseService {
         await this.db.prepare(`
           UPDATE auto_replenish_config 
           SET enabled = ?, monitor_type = ?, monitored_instances = ?, monitored_api_keys = ?, 
-              instance_key_mapping = ?, template_id = ?, key_group = ?, check_interval = ?, notify_telegram = ?, updated_at = ?
+              instance_key_mapping = ?, template_id = ?, check_interval = ?, notify_telegram = ?, updated_at = ?
           WHERE user_id = ?
         `).bind(
           config.enabled ? 1 : 0,
@@ -757,7 +724,6 @@ export class DatabaseService {
           config.monitored_api_keys || '[]',
           config.instance_key_mapping || '[]',
           config.template_id || null,
-          config.key_group,
           config.check_interval,
           config.notify_telegram ? 1 : 0,
           now,
@@ -768,8 +734,8 @@ export class DatabaseService {
       } else {
         const result = await this.db.prepare(`
           INSERT INTO auto_replenish_config 
-          (user_id, enabled, monitor_type, monitored_instances, monitored_api_keys, instance_key_mapping, template_id, key_group, check_interval, notify_telegram, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (user_id, enabled, monitor_type, monitored_instances, monitored_api_keys, instance_key_mapping, template_id, check_interval, notify_telegram, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           config.user_id,
           config.enabled ? 1 : 0,
@@ -778,7 +744,6 @@ export class DatabaseService {
           config.monitored_api_keys || '[]',
           config.instance_key_mapping || '[]',
           config.template_id || null,
-          config.key_group,
           config.check_interval,
           config.notify_telegram ? 1 : 0,
           now,

@@ -35,9 +35,9 @@ function validateNotificationSettingsRequest(data: any): NotificationSettingsReq
       if (typeof telegram_bot_token !== 'string') {
         throw new ValidationError('Bot Token必须是字符串', 'telegram_bot_token');
       }
-      // 验证Bot Token格式
-      if (!/^\d+:[A-Za-z0-9_-]{35}$/.test(telegram_bot_token.trim())) {
-        throw new ValidationError('Bot Token格式无效', 'telegram_bot_token');
+      // 验证Bot Token格式：数字:字母数字和-_字符，至少35个字符
+      if (!/^\d+:[A-Za-z0-9_-]{35,}$/.test(telegram_bot_token.trim())) {
+        throw new ValidationError('Bot Token格式无效，应为：数字:字符串', 'telegram_bot_token');
       }
     }
 

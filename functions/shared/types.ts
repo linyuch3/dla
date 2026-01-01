@@ -48,7 +48,6 @@ export interface ApiKey {
   health_status: 'unknown' | 'healthy' | 'unhealthy' | 'checking' | 'limited';
   last_checked?: string;
   error_message?: string;
-  key_group: 'personal' | 'rental'; // 密钥分组：自用 | 租机
 }
 
 // 开机模板类型
@@ -84,7 +83,6 @@ export interface AutoReplenishConfig {
   monitored_api_keys: string;  // JSON数组
   instance_key_mapping: string; // JSON数组，存储机器与密钥的映射
   template_id: number | null;
-  key_group: 'personal' | 'rental';
   check_interval: number;
   notify_telegram: boolean;
   created_at: string;

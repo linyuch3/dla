@@ -7,7 +7,6 @@ interface UpdateTaskRequest {
   name?: string;
   enabled?: boolean;
   template_id?: number | null;
-  backup_group?: string;
   api_key_ids?: string;
   instance_ids?: string;
   instance_key_mapping?: string;
@@ -23,7 +22,6 @@ function validateUpdateTaskRequest(data: any): UpdateTaskRequest {
     name: data.name,
     enabled: data.enabled,
     template_id: data.template_id,
-    backup_group: data.backup_group,
     api_key_ids: data.api_key_ids,
     instance_ids: data.instance_ids,
     instance_key_mapping: data.instance_key_mapping,
@@ -95,10 +93,6 @@ export async function onRequestPut(context: RequestContext): Promise<Response> {
     if (data.template_id !== undefined) {
       updates.push('template_id = ?');
       values.push(data.template_id);
-    }
-    if (data.backup_group !== undefined) {
-      updates.push('backup_group = ?');
-      values.push(data.backup_group);
     }
     if (data.api_key_ids !== undefined) {
       updates.push('api_key_ids = ?');

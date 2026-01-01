@@ -75,10 +75,7 @@ import * as autoReplenishLogs from '../api/auto-replenish/logs';
 import * as autoReplenishTrigger from '../api/auto-replenish/trigger';
 import * as autoReplenishTasks from '../api/auto-replenish/tasks';
 import * as autoReplenishTask from '../api/auto-replenish/task';
-
-// API Keys Groups
-import * as apikeysGroups from '../api/apikeys/groups';
-import * as apikeysGroupId from '../api/apikeys/groups/[id]';
+import * as autoReplenishTaskTest from '../api/auto-replenish/tasks/[id]/test';
 
 // Health路由
 import * as health from '../api/health';
@@ -107,12 +104,7 @@ export function setupRoutes(app: Express) {
   registerRoute(app, 'GET', '/api/apikeys', apikeysIndex.onRequestGet);
   registerRoute(app, 'POST', '/api/apikeys', apikeysIndex.onRequestPost);
   registerRoute(app, 'POST', '/api/apikeys/validate-batch', apikeysValidateBatch.onRequestPost);
-  registerRoute(app, 'GET', '/api/apikeys/test-health', apikeysTestHealth.onRequestGet);
-  registerRoute(app, 'GET', '/api/apikeys/groups', apikeysGroups.onRequestGet);
-  registerRoute(app, 'POST', '/api/apikeys/groups', apikeysGroups.onRequestPost);
-  registerRoute(app, 'GET', '/api/apikeys/groups/:id', apikeysGroupId.onRequestGet);
-  registerRoute(app, 'PUT', '/api/apikeys/groups/:id', apikeysGroupId.onRequestPut);
-  registerRoute(app, 'DELETE', '/api/apikeys/groups/:id', apikeysGroupId.onRequestDelete);
+  registerRoute(app, 'POST', '/api/apikeys/test-health', apikeysTestHealth.onRequestPost);
   registerRoute(app, 'GET', '/api/apikeys/:id', apikeysIdIndex.onRequestGet);
   registerRoute(app, 'PUT', '/api/apikeys/:id', apikeysIdIndex.onRequestPut);
   registerRoute(app, 'DELETE', '/api/apikeys/:id', apikeysIdIndex.onRequestDelete);
@@ -190,6 +182,7 @@ export function setupRoutes(app: Express) {
   registerRoute(app, 'PUT', '/api/auto-replenish/tasks/:id', autoReplenishTask.onRequestPut);
   registerRoute(app, 'DELETE', '/api/auto-replenish/tasks/:id', autoReplenishTask.onRequestDelete);
   registerRoute(app, 'POST', '/api/auto-replenish/tasks/:id/toggle', autoReplenishTask.onRequestPostToggle);
+  registerRoute(app, 'POST', '/api/auto-replenish/tasks/:id/test', autoReplenishTaskTest.onRequestPost);
   
   // Frontend fallback (SPA support)
   app.get('*', (req: Request, res: Response) => {

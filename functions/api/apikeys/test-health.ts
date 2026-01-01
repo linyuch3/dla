@@ -3,6 +3,7 @@ import { RequestContext } from '../../shared/types';
 import { createDatabaseService } from '../../shared/db';
 import { authMiddleware, createErrorResponse, createSuccessResponse } from '../../shared/auth';
 import { checkApiKeyHealth } from './validate-batch';
+import { sendTelegramNotification } from '../../shared/telegram-notify';
 
 interface BatchTestProgress {
     total: number;
@@ -84,6 +85,34 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
             limitedCount = results.filter(r => r.status === 'limited').length;
 
             console.log(`[用户 ${session.userId}] 进度: ${results.length}/${totalKeys}, 健康: ${healthyCount}, 失效: ${unhealthyCount}, 受限: ${limitedCount}`);
+        }
+
+        // 发送失效和受限密钥的通知
+        const failedKeys = results.filter(r => r.status === 'unhealthy');
+        const limitedKeys = results.filter(r => r.status === 'limited');
+        
+        for (const result of failedKeys) {
+            const key = apiKeys.find(k => k.id === result.keyId);
+            if (key) {
+                sendTelegramNotification(env, session.userId, {
+                    type: 'api_key_failed',
+                    apiKeyName: key.name,
+                    provider: key.provider,
+                    errorMessage: result.error || '未知错误'
+                }).catch(err => console.error('发送API密钥失效通知失败:', err));
+            }
+        }
+        
+        for (const result of limitedKeys) {
+            const key = apiKeys.find(k => k.id === result.keyId);
+            if (key) {
+                sendTelegramNotification(env, session.userId, {
+                    type: 'api_key_limited',
+                    apiKeyName: key.name,
+                    provider: key.provider,
+                    errorMessage: result.error || 'API调用受限'
+                }).catch(err => console.error('发送API密钥受限通知失败:', err));
+            }
         }
 
         const responseData = {

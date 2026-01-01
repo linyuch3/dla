@@ -58,7 +58,10 @@ async function registerRoute(app: Express, filePath: string, routePath: string) 
     const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
     
     for (const method of methods) {
-      const handler = module[`on${method}`] || module[`on${method.toLowerCase()}`];
+      // 支持多种命名格式：onRequestGet, onGET, onget
+      const handler = module[`onRequest${method.charAt(0)}${method.slice(1).toLowerCase()}`] || 
+                      module[`on${method}`] || 
+                      module[`on${method.toLowerCase()}`];
       
       if (handler) {
         const httpMethod = method.toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch';

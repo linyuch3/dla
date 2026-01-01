@@ -3,6 +3,7 @@ import { RequestContext, ValidationError } from '../../../shared/types';
 import { createDatabaseService } from '../../../shared/db';
 import { createCloudProviderFromEncryptedKey, CloudInstanceManager } from '../../../shared/cloud-providers';
 import { authMiddleware, createErrorResponse, createSuccessResponse, validateRequestData } from '../../../shared/auth';
+import { sendTelegramNotification } from '../../../shared/telegram-notify';
 
 interface ChangeIPRequest {
   ipVersion: 'IPv4' | 'IPv6';
@@ -80,7 +81,22 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
     // 执行更换IP操作
     console.log(`开始更换实例IP: ${instanceId}, 版本: ${changeIPData.ipVersion}`);
     
+    // 获取旧IP用于通知
+    const instances = await instanceManager.listInstances();
+    const instance = instances.find(i => i.id === instanceId);
+    const oldIP = changeIPData.ipVersion === 'ipv4' ? instance?.ipv4 : instance?.ipv6;
+    
     const newIP = await instanceManager.changeInstanceIP(instanceId, changeIPData.ipVersion);
+
+    // 发送 Telegram 通知
+    sendTelegramNotification(env, session.userId, {
+      type: 'instance_change_ip',
+      instanceName: instanceId,
+      instanceId: instanceId,
+      provider: apiKey.provider,
+      oldIp: oldIP,
+      newIp: newIP
+    }).catch(err => console.error('发送更换IP通知失败:', err));
 
     return createSuccessResponse({
       instanceId,

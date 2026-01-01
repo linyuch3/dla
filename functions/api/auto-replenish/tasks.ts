@@ -7,7 +7,6 @@ interface CreateTaskRequest {
   name: string;
   enabled?: boolean;
   template_id?: number | null;
-  backup_group?: string;
   api_key_ids: string;
   instance_ids: string;
   instance_key_mapping: string;
@@ -26,7 +25,6 @@ function validateCreateTaskRequest(data: any): CreateTaskRequest {
     name: data.name,
     enabled: data.enabled ?? true,
     template_id: data.template_id || null,
-    backup_group: data.backup_group || '',
     api_key_ids: data.api_key_ids || '[]',
     instance_ids: data.instance_ids || '[]',
     instance_key_mapping: data.instance_key_mapping || '[]',
@@ -42,6 +40,7 @@ export async function onRequestGet(context: RequestContext): Promise<Response> {
 
   try {
     const db = createDatabaseService(context.env);
+    const session = context.session!;
     
     // 检查表是否存在
     try {
@@ -53,8 +52,9 @@ export async function onRequestGet(context: RequestContext): Promise<Response> {
                (SELECT COUNT(*) FROM json_each(rt.api_key_ids)) as api_key_count
         FROM replenish_tasks rt
         LEFT JOIN instance_templates it ON rt.template_id = it.id
+        WHERE rt.user_id = ?
         ORDER BY rt.created_at DESC
-      `).all();
+      `).bind(session.userId).all();
 
       return createSuccessResponse({
         tasks: tasks.results || []
@@ -79,18 +79,19 @@ export async function onRequestPost(context: RequestContext): Promise<Response> 
 
   try {
     const data = await validateRequestData(context.request, validateCreateTaskRequest);
+    const session = context.session!;
     
     const result = await context.env.DB.prepare(`
       INSERT INTO replenish_tasks (
-        name, enabled, template_id, backup_group,
+        user_id, name, enabled, template_id,
         api_key_ids, instance_ids, instance_key_mapping,
         auto_add_new_instance, check_interval
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
+      session.userId,
       data.name,
       data.enabled ? 1 : 0,
       data.template_id,
-      data.backup_group,
       data.api_key_ids,
       data.instance_ids,
       data.instance_key_mapping,
